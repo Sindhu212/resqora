@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RESQORA – LifeLine AI | Emergency Response Platform</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --sidebar-width: 260px;
+      --navy: #0a1628;
+      --navy-mid: #122040;
+      --navy-light: #1a3060;
+      --red: #d63031;
+      --red-dark: #b71c1c;
+      --accent: #e84545;
+      --grey-bg: #f2f4f7;
+      --border: #dde2ea;
+      --text-muted: #6b7280;
+      --badge-critical: #d63031;
+      --badge-stable: #27ae60;
+      --badge-dispatched: #e67e22;
+      --badge-completed: #2980b9;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--grey-bg);
+      color: #1a2236;
+      margin: 0;
+      overflow-x: hidden;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: var(--sidebar-width);
+      min-height: 100vh;
+      background: var(--navy);
+      position: fixed;
+      top: 0; left: 0;
+      z-index: 1050;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar-brand {
+      padding: 20px 22px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .sidebar-brand .brand-icon {
+      width: 38px; height: 38px;
+      background: var(--red);
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1.2rem;
+      font-weight: 800;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-brand .brand-name {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.5px;
+    }
+
+    .sidebar-brand .brand-tagline {
+      font-size: 0.68rem;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-top: 1px;
+    }
+
+    .sidebar-nav {
+      padding: 14px 10px;
+      flex: 1;
+    }
+
+    .nav-section-title {
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: rgba(255,255,255,0.3);
+      padding: 10px 12px 6px;
+      margin-top: 6px;
+    }
+
+    .sidebar-nav .nav-link {
+      color: rgba(255,255,255,0.65);
+      border-radius: 8px;
+      padding: 9px 14px;
+      margin-bottom: 2px;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.18s;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .sidebar-nav .nav-link i {
+      font-size: 1.05rem;
+      width: 20px;
+      text-align: center;
+    }
+
+    .sidebar-nav .nav-link:hover,
+    .sidebar-nav .nav-link.active {
+      background: var(--navy-light);
+      color: #fff;
+    }
+
+    .sidebar-nav .nav-link.active {
+      background: var(--red);
+      color: #fff;
+    }
+
+    .sidebar-footer {
+      padding: 14px 20px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.3);
+    }
+
+    /* ── Topbar ── */
+    #topbar {
+      position: fixed;
+      top: 0; left: var(--sidebar-width); right: 0;
+      height: 62px;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 1040;
+    }
+
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+
+    .btn-hamburger {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      color: var(--navy);
+      cursor: pointer;
+    }
+
+    .topbar-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .live-badge {
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: var(--red);
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .live-badge::before {
+      content: '';
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--red);
+      animation: blink 1.2s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    .topbar-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--navy-light);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    /* ── Main Content ── */
+    #main-content {
+      margin-left: var(--sidebar-width);
+      padding-top: 62px;
+      min-height: 100vh;
+    }
+
+    .page-section {
+      display: none;
+      padding: 28px 28px 40px;
+    }
+
+    .page-section.active { display: block; }
+
+    .page-header {
+      margin-bottom: 22px;
+    }
+
+    .page-header h2 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--navy);
+      margin: 0 0 2px;
+    }
+
+    .page-header p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    /* ── Overview Cards ── */
+    .stat-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 20px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      transition: box-shadow 0.18s;
+    }
+
+    .stat-card:hover { box-shadow: 0 4px 18px rgba(0,0,0,0.07); }
+
+    .stat-icon {
+      width: 46px; height: 46px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+    }
+
+    .stat-icon.red    { background: #fef2f2; color: var(--red); }
+    .stat-icon.navy   { background: #eff4ff; color: var(--navy-light); }
+    .stat-icon.green  { background: #f0fdf4; color: #16a34a; }
+    .stat-icon.orange { background: #fff7ed; color: #d97706; }
+    .stat-icon.blue   { background: #eff6ff; color: #2563eb; }
+
+    .stat-body { flex: 1; }
+    .stat-value { font-size: 1.75rem; font-weight: 800; color: var(--navy); line-height: 1; }
+    .stat-label { font-size: 0.78rem; color: var(--text-muted); margin-top: 3px; }
+    .stat-sub   { font-size: 0.72rem; margin-top: 6px; }
+
+    /* ── Cards & Tables ── */
+    .content-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .content-card-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .content-card-header h5 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .content-card-body { padding: 20px; }
+
+    .table { margin: 0; font-size: 0.84rem; }
+    .table thead th {
+      background: var(--grey-bg);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 14px;
+    }
+    .table tbody td {
+      padding: 11px 14px;
+      vertical-align: middle;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .table tbody tr:last-child td { border-bottom: none; }
+    .table tbody tr:hover td { background: #fafbfc; }
+
+    /* ── Badges ── */
+    .badge-critical   { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
+    .badge-stable     { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+    .badge-dispatched { background: #fff7ed; color: #c2410c; border: 1px solid #fdba74; }
+    .badge-completed  { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
+    .badge-available  { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+    .badge-on-duty    { background: #fff7ed; color: #c2410c; border: 1px solid #fdba74; }
+    .badge-accepting  { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+    .badge-transit    { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+
+    .status-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    /* ── Emergency Request Detail Card ── */
+    .detail-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .detail-card-top {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+      padding: 20px 22px;
+      color: #fff;
+    }
+
+    .detail-card-top .eid {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.6);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .detail-card-top h4 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      margin: 0 0 6px;
+    }
+
+    .detail-body { padding: 20px 22px; }
+
+    .detail-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+      font-size: 0.84rem;
+    }
+
+    .detail-label { color: var(--text-muted); font-weight: 600; min-width: 170px; }
+    .detail-value { color: var(--navy); font-weight: 500; }
+
+    .priority-critical {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #b91c1c;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    /* ── Timeline ── */
+    .timeline { list-style: none; padding: 0; margin: 0; }
+    .timeline li {
+      display: flex;
+      gap: 12px;
+      padding-bottom: 18px;
+      position: relative;
+    }
+    .timeline li:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 14px; top: 28px;
+      width: 2px;
+      height: calc(100% - 14px);
+      background: var(--border);
+    }
+    .tl-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+    }
+    .tl-content { font-size: 0.82rem; }
+    .tl-content strong { color: var(--navy); font-size: 0.84rem; }
+    .tl-content span { color: var(--text-muted); font-size: 0.76rem; display: block; margin-top: 1px; }
+
+    /* ── Hospital Info ── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .info-item {
+      background: var(--grey-bg);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    .info-item .info-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .info-item .info-value { font-size: 1rem; font-weight: 700; color: var(--navy); margin-top: 2px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 991px) {
+      #sidebar { transform: translateX(-100%); }
+      #sidebar.show { transform: translateX(0); }
+      #main-content { margin-left: 0; }
+      #topbar { left: 0; }
+      .btn-hamburger { display: block; }
+      .info-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 575px) {
+      .page-section { padding: 16px 14px 32px; }
+      .stat-value { font-size: 1.4rem; }
+    }
+
+    /* Sidebar overlay on mobile */
+    #sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 1049;
+    }
+
+    #sidebar-overlay.show { display: block; }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar Overlay (mobile) -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- ── SIDEBAR ── -->
+<nav id="sidebar">
+  <div class="sidebar-brand d-flex align-items-center">
+    <div class="brand-icon"><i class="bi bi-heartbeat"></i></div>
+    <div>
+      <div class="brand-name">RESQORA</div>
+      <div class="brand-tagline">LifeLine AI Platform</div>
+    </div>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="nav-section-title">Main</div>
+    <a class="nav-link active" onclick="showSection('dashboard')">
+      <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+    <a class="nav-link" onclick="showSection('emergency-requests')">
+      <i class="bi bi-exclamation-triangle-fill"></i> Emergency Requests
+    </a>
+
+    <div class="nav-section-title">Resources</div>
+    <a class="nav-link" onclick="showSection('ambulances')">
+      <i class="bi bi-truck-front-fill"></i> Ambulances
+    </a>
+    <a class="nav-link" onclick="showSection('hospitals')">
+      <i class="bi bi-hospital-fill"></i> Hospitals
+    </a>
+    <a class="nav-link" onclick="showSection('patients')">
+      <i class="bi bi-person-heart"></i> Patients
+    </a>
+
+    <div class="nav-section-title">Reports</div>
+    <a class="nav-link" onclick="showSection('history')">
+      <i class="bi bi-clock-history"></i> Emergency History
+    </a>
+  </div>
+
+  <div class="sidebar-footer">
+    &copy; 2026 RESQORA Technologies
+  </div>
+</nav>
+
+<!-- ── TOPBAR ── -->
+<header id="topbar">
+  <div class="topbar-left">
+    <button class="btn-hamburger" onclick="toggleSidebar()">
+      <i class="bi bi-list"></i>
+    </button>
+    <div class="topbar-title" id="topbar-title">
+      <i class="bi bi-speedometer2 me-1" style="color:var(--red)"></i> Dashboard
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="live-badge">LIVE</div>
+    <div class="topbar-avatar">DR</div>
+  </div>
+</header>
+
+<!-- ── MAIN CONTENT ── -->
+<main id="main-content">
+
+  <!-- ══════════════════════ DASHBOARD ══════════════════════ -->
+  <section id="section-dashboard" class="page-section active">
+    <div class="page-header">
+      <h2><i class="bi bi-speedometer2 me-2" style="color:var(--red)"></i>Dashboard Overview</h2>
+      <p>Real-time emergency response status — Friday, 6 November 2026</p>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-xl-2 col-lg-4 col-md-6">
+        <div class="stat-card">
+          <div class="stat-icon red"><i class="bi bi-exclamation-octagon-fill"></i></div>
+          <div class="stat-body">
+            <div class="stat-value">14</div>
+            <div class="stat-label">Total Emergency Requests</div>
+            <div class="stat-sub"><span class="text-danger fw-semibold">3 Critical</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-2 col-lg-4 col-md-6">
+        <div class="stat-card">
+          <div class="stat-icon orange"><i class="bi bi-truck-front-fill"></i></div>
+          <div class="stat-body">
+            <div class="stat-value">6</div>
+            <div class="stat-label">Active Ambulances</div>
+            <div class="stat-sub"><span class="text-warning fw-semibold">2 Standby</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-2 col-lg-4 col-md-6">
+        <div class="stat-card">
+          <div class="stat-icon green"><i class="bi bi-hospital-fill"></i></div>
+          <div class="stat-body">
+            <div class="stat-value">5</div>
+            <div class="stat-label">Available Hospitals</div>
+            <div class="stat-sub"><span class="text-success fw-semibold">All Accepting</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-2 col-lg-4 col-md-6">
+        <div class="stat-card">
+          <div class="stat-icon red"><i class="bi bi-person-heart"></i></div>
+          <div class="stat-body">
+            <div class="stat-value">9</div>
+            <div class="stat-label">Patients Under Emergency Care</div>
+            <div class="stat-sub"><span class="text-danger fw-semibold">4 In Transit</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-2 col-lg-4 col-md-6">
+        <div class="stat-card">
+          <div class="stat-icon blue"><i class="bi bi-check-circle-fill"></i></div>
+          <div class="stat-body">
+            <div class="stat-value">48</div>
+            <div class="stat-label">Completed Emergency Responses</div>
+            <div class="stat-sub"><span class="text-primary fw-semibold">This Month</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <!-- Active Emergency -->
+      <div class="col-lg-7">
+        <div class="content-card">
+          <div class="content-card-header">
+            <h5><i class="bi bi-lightning-charge-fill text-danger"></i> Active Emergencies</h5>
+            <a class="btn btn-sm" style="background:#fef2f2;color:var(--red);border:1px solid #fca5a5;font-size:0.75rem;" onclick="showSection('emergency-requests')">View All</a>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Patient</th>
+                  <th>Type</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>RESQ-1001</strong></td>
+                  <td>Rahul Sharma</td>
+                  <td>Road Accident</td>
+                  <td><span class="status-badge badge-critical">Critical</span></td>
+                  <td><span class="status-badge badge-dispatched">Ambulance Dispatched</span></td>
+                </tr>
+                <tr>
+                  <td><strong>RESQ-1002</strong></td>
+                  <td>Anita Patel</td>
+                  <td>Cardiac Arrest</td>
+                  <td><span class="status-badge badge-critical">Critical</span></td>
+                  <td><span class="status-badge badge-dispatched">En Route</span></td>
+                </tr>
+                <tr>
+                  <td><strong>RESQ-1003</strong></td>
+                  <td>Kiran Mehta</td>
+                  <td>Stroke</td>
+                  <td><span class="status-badge badge-stable" style="background:#fff7ed;color:#c2410c;border-color:#fdba74;">High</span></td>
+                  <td><span class="status-badge badge-available">At Hospital</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Status -->
+      <div class="col-lg-5">
+        <div class="content-card h-100">
+          <div class="content-card-header">
+            <h5><i class="bi bi-activity text-danger"></i> System Status</h5>
+          </div>
+          <div class="content-card-body">
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+              <div style="font-size:0.85rem;font-weight:600;">Emergency Dispatch</div>
+              <span class="status-badge badge-available">Operational</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+              <div style="font-size:0.85rem;font-weight:600;">Hospital Network</div>
+              <span class="status-badge badge-available">All Online</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+              <div style="font-size:0.85rem;font-weight:600;">Ambulance Tracking</div>
+              <span class="status-badge badge-available">Active</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+              <div style="font-size:0.85rem;font-weight:600;">AI Response Engine</div>
+              <span class="status-badge badge-available">Running</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center py-2">
+              <div style="font-size:0.85rem;font-weight:600;">Emergency Hotline</div>
+              <span class="status-badge badge-available">Open</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ EMERGENCY REQUESTS ══════════════════════ -->
+  <section id="section-emergency-requests" class="page-section">
+    <div class="page-header">
+      <h2><i class="bi bi-exclamation-triangle-fill me-2" style="color:var(--red)"></i>Emergency Requests</h2>
+      <p>All active and recent emergency dispatches</p>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-xl-7">
+        <!-- Request Detail Card -->
+        <div class="detail-card mb-3">
+          <div class="detail-card-top">
+            <div class="eid">Emergency ID: RESQ-1001</div>
+            <h4>Rahul Sharma &nbsp;<span class="priority-critical"><i class="bi bi-exclamation-circle-fill"></i>Critical</span></h4>
+            <div style="font-size:0.82rem;color:rgba(255,255,255,0.65);">
+              <i class="bi bi-geo-alt-fill me-1"></i>MG Road, Bengaluru
+              &nbsp;&nbsp;|&nbsp;&nbsp;
+              <i class="bi bi-clock me-1"></i>Reported: 10:42 AM Today
+            </div>
+          </div>
+          <div class="detail-body">
+            <div class="row g-0">
+              <div class="col-md-6">
+                <div class="detail-row"><span class="detail-label">Emergency Type</span><span class="detail-value">Road Accident</span></div>
+                <div class="detail-row"><span class="detail-label">Patient Age</span><span class="detail-value">25 years</span></div>
+                <div class="detail-row"><span class="detail-label">Patient Condition</span><span class="detail-value"><span class="status-badge badge-critical">Critical</span></span></div>
+                <div class="detail-row"><span class="detail-label">Assigned Ambulance</span><span class="detail-value"><strong>AMB-101</strong></span></div>
+              </div>
+              <div class="col-md-6">
+                <div class="detail-row"><span class="detail-label">Assigned Hospital</span><span class="detail-value">City Care Hospital</span></div>
+                <div class="detail-row"><span class="detail-label">Distance to Hospital</span><span class="detail-value">4.5 km</span></div>
+                <div class="detail-row"><span class="detail-label">Estimated Arrival</span><span class="detail-value"><strong class="text-danger">12 Minutes</strong></span></div>
+                <div class="detail-row"><span class="detail-label">Current Status</span><span class="detail-value"><span class="status-badge badge-dispatched">Ambulance Dispatched</span></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- All Requests Table -->
+        <div class="content-card">
+          <div class="content-card-header">
+            <h5><i class="bi bi-list-ul"></i> All Requests</h5>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr><th>ID</th><th>Patient</th><th>Type</th><th>Location</th><th>Priority</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>RESQ-1001</strong></td><td>Rahul Sharma</td><td>Road Accident</td><td>MG Road, Bengaluru</td>
+                  <td><span class="status-badge badge-critical">Critical</span></td>
+                  <td><span class="status-badge badge-dispatched">Dispatched</span></td>
+                </tr>
+                <tr>
+                  <td><strong>RESQ-1002</strong></td><td>Anita Patel</td><td>Cardiac Arrest</td><td>Indiranagar, Bengaluru</td>
+                  <td><span class="status-badge badge-critical">Critical</span></td>
+                  <td><span class="status-badge badge-dispatched">En Route</span></td>
+                </tr>
+                <tr>
+                  <td><strong>RESQ-1003</strong></td><td>Kiran Mehta</td><td>Stroke</td><td>Koramangala, Bengaluru</td>
+                  <td><span class="status-badge" style="background:#fff7ed;color:#c2410c;border:1px solid #fdba74;">High</span></td>
+                  <td><span class="status-badge badge-available">At Hospital</span></td>
+                </tr>
+                <tr>
+                  <td><strong>RESQ-1000</strong></td><td>Deepak Nair</td><td>Medical Emergency</td><td>Whitefield, Bengaluru</td>
+                  <td><span class="status-badge badge-stable">Medium</span></td>
+                  <td><span class="status-badge badge-completed">Completed</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="col-xl-5">
+        <div class="content-card">
+          <div class="content-card-header">
+            <h5><i class="bi bi-activity text-danger"></i> RESQ-1001 Timeline</h5>
+          </div>
+          <div class="content-card-body">
+            <ul class="timeline">
+              <li>
+                <div class="tl-dot" style="background:#fef2f2;color:var(--red)"><i class="bi bi-telephone-fill"></i></div>
+                <div class="tl-content"><strong>Emergency Call Received</strong><span>10:42 AM — RESQORA Dispatch Centre</span></div>
+              </li>
+              <li>
+                <div class="tl-dot" style="background:#fff7ed;color:#c2410c"><i class="bi bi-cpu-fill"></i></div>
+                <div class="tl-content"><strong>AI Triage Completed</strong><span>10:43 AM — Priority: Critical</span></div>
+              </li>
+              <li>
+                <div class="tl-dot" style="background:#fff7ed;color:#c2410c"><i class="bi bi-truck-front-fill"></i></div>
+                <div class="tl-content"><strong>Ambulance AMB-101 Dispatched</strong><span>10:44 AM — Driver: Raj Kumar</span></div>
+              </li>
+              <li>
+                <div class="tl-dot" style="background:#eff6ff;color:#2563eb"><i class="bi bi-hospital-fill"></i></div>
+                <div class="tl-content"><strong>City Care Hospital Notified</strong><span>10:44 AM — Trauma bay reserved</span></div>
+              </li>
+              <li>
+                <div class="tl-dot" style="background:#f0fdf4;color:#16a34a"><i class="bi bi-geo-alt-fill"></i></div>
+                <div class="tl-content"><strong>Ambulance En Route</strong><span>10:46 AM — ETA 12 minutes</span></div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ AMBULANCES ══════════════════════ -->
+  <section id="section-ambulances" class="page-section">
+    <div class="page-header">
+      <h2><i class="bi bi-truck-front-fill me-2" style="color:var(--red)"></i>Ambulances</h2>
+      <p>Fleet status and assignment details</p>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+          <div class="stat-icon orange"><i class="bi bi-truck-front-fill"></i></div>
+          <div class="stat-body"><div class="stat-value">8</div><div class="stat-label">Total Fleet</div></div>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+          <div class="stat-icon red"><i class="bi bi-exclamation-circle-fill"></i></div>
+          <div class="stat-body"><div class="stat-value">6</div><div class="stat-label">On Emergency Duty</div></div>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+          <div class="stat-icon green"><i class="bi bi-check2-circle"></i></div>
+          <div class="stat-body"><div class="stat-value">2</div><div class="stat-label">Standby</div></div>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+          <div class="stat-icon blue"><i class="bi bi-tools"></i></div>
+          <div class="stat-body"><div class="stat-value">0</div><div class="stat-label">Under Maintenance</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Featured Ambulance Card -->
+    <div class="row g-3 mb-3">
+      <div class="col-lg-5">
+        <div class="detail-card">
+          <div class="detail-card-top">
+            <div class="eid">Ambulance ID: AMB-101</div>
+            <h4><i class="bi bi-truck-front-fill me-2"></i>AMB-101</h4>
+            <div style="font-size:0.82rem;color:rgba(255,255,255,0.65);">Advanced Life Support (ALS)</div>
+          </div>
+          <div class="detail-body">
+            <div class="detail-row"><span class="detail-label">Driver Name</span><span class="detail-value">Raj Kumar</span></div>
+            <div class="detail-row"><span class="detail-label">Ambulance Type</span><span class="detail-value">Advanced Life Support (ALS)</span></div>
+            <div class="detail-row"><span class="detail-label">Current Location</span><span class="detail-value">MG Road, Bengaluru</span></div>
+            <div class="detail-row"><span class="detail-label">Assigned Emergency</span><span class="detail-value"><strong>RESQ-1001</strong></span></div>
+            <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value"><span class="status-badge badge-on-duty">On Emergency Duty</span></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-7">
+        <div class="content-card h-100">
+          <div class="content-card-header">
+            <h5><i class="bi bi-list-ul"></i> Fleet Overview</h5>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr><th>ID</th><th>Type</th><th>Driver</th><th>Location</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>AMB-101</strong></td><td>ALS</td><td>Raj Kumar</td><td>MG Road, Bengaluru</td>
+                  <td><span class="status-badge badge-on-duty">On Duty</span></td>
+                </tr>
+                <tr>
+                  <td><strong>AMB-102</strong></td><td>BLS</td><td>Suresh Patil</td><td>Whitefield, Bengaluru</td>
+                  <td><span class="status-badge badge-completed">Returning</span></td>
+                </tr>
+                <tr>
+                  <td><strong>AMB-103</strong></td><td>ALS</td><td>Meena Reddy</td><td>Indiranagar, Bengaluru</td>
+                  <td><span class="status-badge badge-on-duty">On Duty</span></td>
+                </tr>
+                <tr>
+                  <td><strong>AMB-104</strong></td><td>Neonatal</td><td>Arjun Das</td><td>HSR Layout, Bengaluru</td>
+                  <td><span class="status-badge badge-available">Standby</span></td>
+                </tr>
+                <tr>
+                  <td><strong>AMB-105</strong></td><td>BLS</td><td>Priya Nair</td><td>Koramangala, Bengaluru</td>
+                  <td><span class="status-badge badge-available">Standby</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ HOSPITALS ══════════════════════ -->
+  <section id="section-hospitals" class="page-section">
+    <div class="page-header">
+      <h2><i class="bi bi-hospital-fill me-2" style="color:var(--red)"></i>Hospitals</h2>
+      <p>Network hospitals and emergency bed availability</p>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-5">
+        <div class="detail-card mb-3">
+          <div class="detail-card-top">
+            <div class="eid">Featured Hospital</div>
+            <h4><i class="bi bi-hospital-fill me-2"></i>City Care Hospital</h4>
+            <div style="font-size:0.82rem;color:rgba(255,255,255,0.65);"><i class="bi bi-geo-alt-fill me-1"></i>Bengaluru, Karnataka</div>
+          </div>
+          <div class="detail-body">
+            <div class="info-grid mb-3">
+              <div class="info-item">
+                <div class="info-label">Emergency Beds</div>
+                <div class="info-value" style="color:#16a34a;">8 Available</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">ICU Beds</div>
+                <div class="info-value" style="color:#16a34a;">3 Available</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Trauma Care</div>
+                <div class="info-value" style="color:#16a34a;">Available</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Emergency Dept.</div>
+                <div class="info-value" style="color:#16a34a;">Open</div>
+              </div>
+            </div>
+            <div class="detail-row"><span class="detail-label">Hospital Status</span><span class="detail-value"><span class="status-badge badge-accepting">Accepting Emergency Patients</span></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="content-card">
+          <div class="content-card-header">
+            <h5><i class="bi bi-hospital-fill text-danger"></i> Hospital Network</h5>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr><th>Hospital</th><th>Location</th><th>Emerg. Beds</th><th>ICU Beds</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>City Care Hospital</strong></td><td>Bengaluru</td>
+                  <td><span class="text-success fw-semibold">8</span></td>
+                  <td><span class="text-success fw-semibold">3</span></td>
+                  <td><span class="status-badge badge-accepting">Accepting</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Apollo Emergency Centre</strong></td><td>Bengaluru</td>
+                  <td><span class="text-success fw-semibold">5</span></td>
+                  <td><span class="text-success fw-semibold">2</span></td>
+                  <td><span class="status-badge badge-accepting">Accepting</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Fortis Trauma Unit</strong></td><td>Bengaluru</td>
+                  <td><span class="text-warning fw-semibold">2</span></td>
+                  <td><span class="text-danger fw-semibold">0</span></td>
+                  <td><span class="status-badge badge-on-duty">Limited Capacity</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Narayana Health</strong></td><td>Bengaluru</td>
+                  <td><span class="text-success fw-semibold">10</span></td>
+                  <td><span class="text-success fw-semibold">5</span></td>
+                  <td><span class="status-badge badge-accepting">Accepting</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Manipal Hospital</strong></td><td>Bengaluru</td>
+                  <td><span class="text-success fw-semibold">6</span></td>
+                  <td><span class="text-success fw-semibold">1</span></td>
+                  <td><span class="status-badge badge-accepting">Accepting</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ PATIENTS ══════════════════════ -->
+  <section id="section-patients" class="page-section">
+    <div class="page-header">
+      <h2><i class="bi bi-person-heart me-2" style="color:var(--red)"></i>Patients</h2>
+      <p>Patients currently under emergency care</p>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-5">
+        <div class="detail-card mb-3">
+          <div class="detail-card-top">
+            <div class="eid">Patient Record</div>
+            <h4><i class="bi bi-person-fill me-2"></i>Rahul Sharma</h4>
+            <div style="font-size:0.82rem;color:rgba(255,255,255,0.65);">Age: 25 &nbsp;|&nbsp; Male</div>
+          </div>
+          <div class="detail-body">
+            <div class="detail-row"><span class="detail-label">Emergency Type</span><span class="detail-value">Road Accident</span></div>
+            <div class="detail-row"><span class="detail-label">Condition</span><span class="detail-value"><span class="status-badge badge-critical">Critical</span></span></div>
+            <div class="detail-row"><span class="detail-label">Assigned Ambulance</span><span class="detail-value"><strong>AMB-101</strong></span></div>
+            <div class="detail-row"><span class="detail-label">Assigned Hospital</span><span class="detail-value">City Care Hospital</span></div>
+            <div class="detail-row"><span class="detail-label">Patient Status</span><span class="detail-value"><span class="status-badge badge-transit">In Transit</span></span></div>
+            <div class="detail-row"><span class="detail-label">Emergency ID</span><span class="detail-value"><strong>RESQ-1001</strong></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="content-card">
+          <div class="content-card-header">
+            <h5><i class="bi bi-people-fill text-danger"></i> All Patients</h5>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr><th>Patient</th><th>Emergency Type</th><th>Condition</th><th>Ambulance</th><th>Hospital</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Rahul Sharma</strong></td><td>Road Accident</td>
+                  <td><span class="status-badge badge-critical">Critical</span></td>
+                  <td>AMB-101</td><td>City Care</td>
+                  <td><span class="status-badge badge-transit">In Transit</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Anita Patel</strong></td><td>Cardiac Arrest</td>
+                  <td><span class="status-badge badge-critical">Critical</span></td>
+                  <td>AMB-103</td><td>Apollo</td>
+                  <td><span class="status-badge badge-transit">In Transit</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Kiran Mehta</strong></td><td>Stroke</td>
+                  <td><span class="status-badge" style="background:#fff7ed;color:#c2410c;border:1px solid #fdba74;">High</span></td>
+                  <td>AMB-102</td><td>City Care</td>
+                  <td><span class="status-badge badge-available">Admitted</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Deepak Nair</strong></td><td>Medical Emergency</td>
+                  <td><span class="status-badge badge-stable">Stable</span></td>
+                  <td>AMB-105</td><td>Manipal</td>
+                  <td><span class="status-badge badge-completed">Discharged</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ HISTORY ══════════════════════ -->
+  <section id="section-history" class="page-section">
+    <div class="page-header">
+      <h2><i class="bi bi-clock-history me-2" style="color:var(--red)"></i>Emergency History</h2>
+      <p>Log of completed and resolved emergency responses</p>
+    </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-md-4 col-sm-6">
+        <div class="stat-card">
+          <div class="stat-icon blue"><i class="bi bi-check-all"></i></div>
+          <div class="stat-body"><div class="stat-value">48</div><div class="stat-label">Completed This Month</div></div>
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-6">
+        <div class="stat-card">
+          <div class="stat-icon green"><i class="bi bi-stopwatch-fill"></i></div>
+          <div class="stat-body"><div class="stat-value">9.4 min</div><div class="stat-label">Avg. Response Time</div></div>
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-6">
+        <div class="stat-card">
+          <div class="stat-icon navy"><i class="bi bi-graph-up-arrow"></i></div>
+          <div class="stat-body"><div class="stat-value">97%</div><div class="stat-label">Success Rate</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-card">
+      <div class="content-card-header">
+        <h5><i class="bi bi-clock-history text-danger"></i> Completed Emergency Records</h5>
+        <span style="font-size:0.78rem;color:var(--text-muted);">Showing recent records</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr><th>Emergency ID</th><th>Patient</th><th>Emergency Type</th><th>Hospital</th><th>Ambulance</th><th>Response Time</th><th>Date</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>RESQ-1000</strong></td><td>Deepak Nair</td><td>Medical Emergency</td>
+              <td>City Care Hospital</td><td>AMB-102</td><td>8 min</td><td>05 Nov 2026</td>
+              <td><span class="status-badge badge-completed">Completed</span></td>
+            </tr>
+            <tr>
+              <td><strong>RESQ-0999</strong></td><td>Sunita Rao</td><td>Burns</td>
+              <td>Narayana Health</td><td>AMB-104</td><td>11 min</td><td>04 Nov 2026</td>
+              <td><span class="status-badge badge-completed">Completed</span></td>
+            </tr>
+            <tr>
+              <td><strong>RESQ-0998</strong></td><td>Mohit Sharma</td><td>Road Accident</td>
+              <td>Apollo Emergency</td><td>AMB-101</td><td>7 min</td><td>04 Nov 2026</td>
+              <td><span class="status-badge badge-completed">Completed</span></td>
+            </tr>
+            <tr>
+              <td><strong>RESQ-0997</strong></td><td>Priya Menon</td><td>Cardiac Arrest</td>
+              <td>Fortis Trauma</td><td>AMB-103</td><td>6 min</td><td>03 Nov 2026</td>
+              <td><span class="status-badge badge-completed">Completed</span></td>
+            </tr>
+            <tr>
+              <td><strong>RESQ-0996</strong></td><td>Vivek Kumar</td><td>Fracture</td>
+              <td>Manipal Hospital</td><td>AMB-105</td><td>13 min</td><td>02 Nov 2026</td>
+              <td><span class="status-badge badge-completed">Completed</span></td>
+            </tr>
+            <tr>
+              <td><strong>RESQ-0995</strong></td><td>Riya Desai</td><td>Respiratory Distress</td>
+              <td>City Care Hospital</td><td>AMB-102</td><td>9 min</td><td>01 Nov 2026</td>
+              <td><span class="status-badge badge-completed">Completed</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const sectionMap = {
+    'dashboard':           { label: '⚡ Dashboard',             icon: 'bi-speedometer2' },
+    'emergency-requests':  { label: '🚨 Emergency Requests',    icon: 'bi-exclamation-triangle-fill' },
+    'ambulances':          { label: '🚑 Ambulances',            icon: 'bi-truck-front-fill' },
+    'hospitals':           { label: '🏥 Hospitals',             icon: 'bi-hospital-fill' },
+    'patients':            { label: '❤️ Patients',              icon: 'bi-person-heart' },
+    'history':             { label: '📋 Emergency History',     icon: 'bi-clock-history' }
+  };
+
+  function showSection(name) {
+    // Update sections
+    document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById('section-' + name);
+    if (target) target.classList.add('active');
+
+    // Update sidebar
+    document.querySelectorAll('.sidebar-nav .nav-link').forEach(l => l.classList.remove('active'));
+    document.querySelectorAll('.sidebar-nav .nav-link').forEach(l => {
+      if (l.getAttribute('onclick') && l.getAttribute('onclick').includes("'" + name + "'")) {
+        l.classList.add('active');
+      }
+    });
+
+    // Update topbar title
+    const info = sectionMap[name];
+    if (info) document.getElementById('topbar-title').textContent = info.label;
+
+    // Close mobile sidebar
+    closeSidebar();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('show');
+    document.getElementById('sidebar-overlay').classList.toggle('show');
+  }
+
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('show');
+    document.getElementById('sidebar-overlay').classList.remove('show');
+  }
+</script>
+</body>
+</html>
