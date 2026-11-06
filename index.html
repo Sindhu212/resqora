@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RESQORA – LifeLine AI | Emergency Response Platform</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
+  <link rel="stylesheet" href="resqora.css" />
+  <!-- Backend mode config – uncomment and fill in to enable Supabase -->
+  <!--
+  <script>
+    window.RESQORA_CONFIG = {
+      supabaseUrl: 'https://YOUR_PROJECT_ID.supabase.co',
+      supabaseKey: 'YOUR_ANON_PUBLIC_KEY'
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  -->
+</head>
+<body>
+
+<!-- Toast Container -->
+<div class="toast-container"></div>
+
+<!-- Sidebar Overlay -->
+<div id="sidebar-overlay"></div>
+
+<!-- Notification panel (topbar) -->
+<div id="notif-panel" style="position:fixed;top:62px;right:14px;width:320px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,0.12);z-index:9990;display:none;" class=""></div>
+<style>#notif-panel.show{display:block!important}</style>
+
+<!-- ══════════════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════════════ -->
+<nav id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon"><i class="bi bi-heartbeat"></i></div>
+    <div>
+      <div class="brand-name">RESQORA</div>
+      <div class="brand-tagline">LifeLine AI Platform</div>
+    </div>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="nav-section-title">Main</div>
+    <a class="nav-link" data-section="dashboard">
+      <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+    <a class="nav-link" data-section="requests">
+      <i class="bi bi-exclamation-triangle-fill"></i> Emergency Requests
+      <span class="nav-badge" id="nav-badge-req" style="display:none">0</span>
+    </a>
+
+    <div class="nav-section-title">Resources</div>
+    <a class="nav-link" data-section="ambulances">
+      <i class="bi bi-truck-front-fill"></i> Ambulances
+    </a>
+    <a class="nav-link" data-section="hospitals">
+      <i class="bi bi-hospital-fill"></i> Hospitals
+    </a>
+    <a class="nav-link" data-section="patients">
+      <i class="bi bi-person-heart"></i> Patients
+    </a>
+
+    <div class="nav-section-title">Operations</div>
+    <a class="nav-link" data-section="assignments">
+      <i class="bi bi-calendar2-check-fill"></i> Emergency Assignments
+    </a>
+    <a class="nav-link" data-section="history">
+      <i class="bi bi-clock-history"></i> Emergency History
+    </a>
+    <a class="nav-link" data-section="livemap">
+      <i class="bi bi-map-fill"></i> Live Emergency Map
+    </a>
+
+    <div class="nav-section-title">Support</div>
+    <a class="nav-link" data-section="notifications">
+      <i class="bi bi-bell-fill"></i> Family Notifications
+    </a>
+    <a class="nav-link" data-section="corporate">
+      <i class="bi bi-building-fill"></i> Corporate Emergencies
+    </a>
+    <a class="nav-link" data-section="settings">
+      <i class="bi bi-gear-fill"></i> Settings
+    </a>
+
+    <div class="nav-section-title">Portals</div>
+    <a class="nav-link" href="citizen.html" target="_blank" style="color:rgba(255,255,255,0.55)">
+      <i class="bi bi-people-fill"></i> Citizen Portal
+    </a>
+    <a class="nav-link" href="ambulance.html" target="_blank" style="color:rgba(255,255,255,0.55)">
+      <i class="bi bi-truck-front-fill"></i> Ambulance Portal
+    </a>
+    <a class="nav-link" href="hospital.html" target="_blank" style="color:rgba(255,255,255,0.55)">
+      <i class="bi bi-hospital-fill"></i> Hospital Portal
+    </a>
+  </div>
+
+  <div class="sidebar-footer" id="sidebar-db-mode">
+    &copy; 2026 RESQORA Technologies &nbsp;|&nbsp; <span id="db-mode-label">LocalStorage Mode</span>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════
+     TOPBAR
+══════════════════════════════════════════════ -->
+<header id="topbar">
+  <div class="topbar-left">
+    <button id="btn-hamburger"><i class="bi bi-list"></i></button>
+    <div class="topbar-title" id="topbar-title">
+      <i class="bi bi-speedometer2 me-1" style="color:var(--red)"></i> Dashboard
+    </div>
+  </div>
+
+  <div class="topbar-search-wrap">
+    <i class="bi bi-search search-icon"></i>
+    <input type="search" id="global-search" placeholder="Search emergencies, hospitals, patients…" autocomplete="off" />
+    <div id="search-results-dropdown"></div>
+  </div>
+
+  <div class="topbar-right">
+    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+    <div id="topbar-clock"></div>
+    <div style="position:relative">
+      <button class="notif-btn" id="notif-bell" title="Notifications">
+        <i class="bi bi-bell-fill"></i>
+        <span class="notif-count" id="notif-count" style="display:none">0</span>
+      </button>
+    </div>
+    <div class="topbar-avatar" title="Demo Administrator" onclick="showSection('settings')">DA</div>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════
+     MAIN CONTENT
+══════════════════════════════════════════════ -->
+<main id="main-content">
+
+<!-- ════════════════════ DASHBOARD ════════════════════ -->
+<section id="section-dashboard" class="page-section">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2><i class="bi bi-speedometer2"></i> Dashboard Overview</h2>
+      <p>Real-time emergency response coordination — <em>Sample data for demonstration purposes only</em></p>
+    </div>
+    <div class="page-header-right">
+      <button class="btn btn-sm btn-danger" onclick="quickNewRequest()"><i class="bi bi-plus-circle me-1"></i>New Emergency</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick="renderDashboard()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="row g-3 mb-4">
+    <div class="col-xl-2 col-lg-4 col-md-6 col-6">
+      <div class="stat-card">
+        <div class="stat-icon ic-red"><i class="bi bi-exclamation-octagon-fill"></i></div>
+        <div class="stat-body">
+          <div class="stat-value" id="stat-total-req">—</div>
+          <div class="stat-label">Total Emergency Requests</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-lg-4 col-md-6 col-6">
+      <div class="stat-card">
+        <div class="stat-icon ic-orange"><i class="bi bi-truck-front-fill"></i></div>
+        <div class="stat-body">
+          <div class="stat-value" id="stat-active-amb">—</div>
+          <div class="stat-label">Active Ambulances</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-lg-4 col-md-6 col-6">
+      <div class="stat-card">
+        <div class="stat-icon ic-green"><i class="bi bi-hospital-fill"></i></div>
+        <div class="stat-body">
+          <div class="stat-value" id="stat-avail-hosp">—</div>
+          <div class="stat-label">Available Hospitals</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-lg-4 col-md-6 col-6">
+      <div class="stat-card">
+        <div class="stat-icon ic-purple"><i class="bi bi-person-heart"></i></div>
+        <div class="stat-body">
+          <div class="stat-value" id="stat-patients">—</div>
+          <div class="stat-label">Patients Under Care</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-lg-4 col-md-6 col-6">
+      <div class="stat-card">
+        <div class="stat-icon ic-red"><i class="bi bi-exclamation-circle-fill"></i></div>
+        <div class="stat-body">
+          <div class="stat-value" id="stat-critical">—</div>
+          <div class="stat-label">Critical Cases</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-lg-4 col-md-6 col-6">
+      <div class="stat-card">
+        <div class="stat-icon ic-blue"><i class="bi bi-check-circle-fill"></i></div>
+        <div class="stat-body">
+          <div class="stat-value" id="stat-completed">—</div>
+          <div class="stat-label">Completed Responses</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="c-card mb-4">
+    <div class="c-card-header"><h5><i class="bi bi-lightning-charge-fill text-warning"></i> Quick Actions</h5></div>
+    <div class="c-card-body">
+      <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-danger btn-sm" onclick="quickNewRequest()"><i class="bi bi-plus-circle me-1"></i>New Emergency Request</button>
+        <button class="btn btn-warning btn-sm text-dark" onclick="quickNewAmbulance()"><i class="bi bi-truck-front-fill me-1"></i>Add Ambulance</button>
+        <button class="btn btn-success btn-sm" onclick="quickNewHospital()"><i class="bi bi-hospital-fill me-1"></i>Add Hospital</button>
+        <button class="btn btn-primary btn-sm" onclick="quickNewPatient()"><i class="bi bi-person-plus me-1"></i>Register Patient</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="showSection('history')"><i class="bi bi-clock-history me-1"></i>View History</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="showSection('assignments')"><i class="bi bi-calendar2-check me-1"></i>Assignments</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <!-- Recent Requests -->
+    <div class="col-xl-8">
+      <div class="c-card">
+        <div class="c-card-header">
+          <h5><i class="bi bi-lightning-charge-fill text-danger"></i> Active Emergency Requests</h5>
+          <button class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:0.75rem" onclick="showSection('requests')">View All</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table tbl table-hover">
+            <thead><tr><th>ID</th><th>Patient</th><th>Type</th><th>Priority</th><th>Status</th><th></th></tr></thead>
+            <tbody id="dash-req-tbody"><tr><td colspan="6" class="text-center text-muted py-3">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="col-xl-4">
+      <div class="c-card h-100">
+        <div class="c-card-header"><h5><i class="bi bi-exclamation-triangle-fill text-danger"></i> Emergency Alerts</h5></div>
+        <div class="c-card-body" id="alerts-panel"><p class="text-muted" style="font-size:0.8rem">Loading…</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <!-- Charts -->
+    <div class="col-md-4">
+      <div class="c-card h-100">
+        <div class="c-card-header"><h5><i class="bi bi-pie-chart-fill text-danger"></i> Priority Distribution</h5></div>
+        <div class="c-card-body" style="height:220px"><canvas id="chart-priority"></canvas></div>
+      </div>
+    </div>
+    <div class="col-md-8">
+      <div class="c-card h-100">
+        <div class="c-card-header"><h5><i class="bi bi-bar-chart-fill text-danger"></i> Response Status Overview</h5></div>
+        <div class="c-card-body" style="height:220px"><canvas id="chart-status"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <!-- Ambulance Overview -->
+    <div class="col-lg-6">
+      <div class="c-card">
+        <div class="c-card-header">
+          <h5><i class="bi bi-truck-front-fill text-warning"></i> Ambulance Status</h5>
+          <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:0.75rem" onclick="showSection('ambulances')">View All</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table tbl table-hover">
+            <thead><tr><th>ID</th><th>Type</th><th>Driver</th><th>Status</th></tr></thead>
+            <tbody id="dash-amb-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hospital Overview -->
+    <div class="col-lg-6">
+      <div class="c-card">
+        <div class="c-card-header">
+          <h5><i class="bi bi-hospital-fill text-success"></i> Hospital Capacity</h5>
+          <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:0.75rem" onclick="showSection('hospitals')">View All</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table tbl table-hover">
+            <thead><tr><th>Hospital</th><th>City</th><th>Emerg. Beds</th><th>Status</th></tr></thead>
+            <tbody id="dash-hosp-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Activity Feed -->
+  <div class="c-card">
+    <div class="c-card-header"><h5><i class="bi bi-activity text-danger"></i> Recent Activity</h5></div>
+    <div class="c-card-body" id="activity-feed"></div>
+  </div>
+</section>
+
+<!-- ════════════════════ EMERGENCY REQUESTS ════════════════════ -->
+<section id="section-requests" class="page-section">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2><i class="bi bi-exclamation-triangle-fill"></i> Emergency Requests</h2>
+      <p>Manage all active and pending emergency dispatches</p>
+    </div>
+    <div class="page-header-right">
+      <button class="btn btn-sm btn-danger" onclick="openAddRequest()"><i class="bi bi-plus-circle me-1"></i>New Request</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick="exportRequests()"><i class="bi bi-download me-1"></i>CSV</button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="c-card mb-3">
+    <div class="c-card-body">
+      <div class="row g-2">
+        <div class="col-md-3">
+          <input type="search" id="req-search" class="form-control form-control-sm" placeholder="Search requests…" />
+        </div>
+        <div class="col-md-2">
+          <select id="req-filter-priority" class="form-select form-select-sm">
+            <option value="">All Priorities</option>
+            <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <select id="req-filter-status" class="form-select form-select-sm">
+            <option value="">All Statuses</option>
+            <option>Pending</option><option>Ambulance Assigned</option><option>Ambulance Dispatched</option>
+            <option>Patient Picked Up</option><option>Hospital Assigned</option><option>Patient In Transit</option>
+            <option>Arrived at Hospital</option><option>Completed</option><option>Cancelled</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <select id="req-filter-type" class="form-select form-select-sm">
+            <option value="">All Types</option>
+            <option>Road Accident</option><option>Cardiac Emergency</option><option>Medical Emergency</option>
+            <option>Fire Emergency</option><option>Trauma</option><option>Stroke</option>
+            <option>Respiratory Emergency</option><option>Other</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <select id="req-sort" class="form-select form-select-sm">
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="priority">By Priority</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="c-card">
+    <div class="table-responsive">
+      <table class="table tbl table-hover">
+        <thead>
+          <tr><th>ID</th><th>Patient</th><th>Type</th><th>Location</th><th>Priority</th><th>Status</th><th>Ambulance</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="req-tbody"><tr><td colspan="8" class="text-center py-4 text-muted">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ AMBULANCES ════════════════════ -->
+<section id="section-ambulances" class="page-section">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2><i class="bi bi-truck-front-fill"></i> Ambulances</h2>
+      <p>Fleet management and availability tracking</p>
+    </div>
+    <div class="page-header-right">
+      <button class="btn btn-sm btn-danger" onclick="openAddAmb()"><i class="bi bi-plus-circle me-1"></i>Add Ambulance</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick="exportAmbulances()"><i class="bi bi-download me-1"></i>CSV</button>
+      <button class="btn btn-sm btn-outline-primary" onclick="importCSV('ambulances')"><i class="bi bi-upload me-1"></i>Import</button>
+    </div>
+  </div>
+
+  <div class="c-card mb-3">
+    <div class="c-card-body">
+      <div class="row g-2">
+        <div class="col-md-4">
+          <input type="search" id="amb-search" class="form-control form-control-sm" placeholder="Search ambulances…" />
+        </div>
+        <div class="col-md-3">
+          <select id="amb-filter-status" class="form-select form-select-sm">
+            <option value="">All Statuses</option>
+            <option>Available</option><option>On Emergency Duty</option><option>Dispatched</option>
+            <option>Transporting Patient</option><option>At Hospital</option><option>Maintenance</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="c-card">
+    <div class="table-responsive">
+      <table class="table tbl table-hover">
+        <thead><tr><th>ID / Reg.</th><th>Type</th><th>Driver / Contact</th><th>Location</th><th>Assigned Emergency</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="amb-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ HOSPITALS ════════════════════ -->
+<section id="section-hospitals" class="page-section">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2><i class="bi bi-hospital-fill"></i> Hospitals</h2>
+      <p>Network hospitals and emergency capacity</p>
+    </div>
+    <div class="page-header-right">
+      <button class="btn btn-sm btn-danger" onclick="openAddHosp()"><i class="bi bi-plus-circle me-1"></i>Add Hospital</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick="exportHospitals()"><i class="bi bi-download me-1"></i>CSV</button>
+      <button class="btn btn-sm btn-outline-primary" onclick="importCSV('hospitals')"><i class="bi bi-upload me-1"></i>Import</button>
+    </div>
+  </div>
+
+  <div class="c-card mb-3">
+    <div class="c-card-body">
+      <div class="row g-2">
+        <div class="col-md-4">
+          <input type="search" id="hosp-search" class="form-control form-control-sm" placeholder="Search hospitals…" />
+        </div>
+        <div class="col-md-3">
+          <select id="hosp-filter-status" class="form-select form-select-sm">
+            <option value="">All Statuses</option>
+            <option>Accepting Emergency Patients</option>
+            <option>Limited Emergency Capacity</option>
+            <option>Emergency Department Full</option>
+            <option>Temporarily Unavailable</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="c-card">
+    <div class="table-responsive">
+      <table class="table tbl table-hover">
+        <thead><tr><th>ID</th><th>Hospital</th><th>Contact</th><th>Emergency Beds</th><th>ICU Beds</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="hosp-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ PATIENTS ════════════════════ -->
+<section id="section-patients" class="page-section">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2><i class="bi bi-person-heart"></i> Patients</h2>
+      <p>Patient registration and emergency tracking</p>
+    </div>
+    <div class="page-header-right">
+      <button class="btn btn-sm btn-danger" onclick="openAddPat()"><i class="bi bi-plus-circle me-1"></i>Add Patient</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick="exportPatients()"><i class="bi bi-download me-1"></i>CSV</button>
+      <button class="btn btn-sm btn-outline-primary" onclick="importCSV('patients')"><i class="bi bi-upload me-1"></i>Import</button>
+    </div>
+  </div>
+
+  <div class="c-card mb-3">
+    <div class="c-card-body">
+      <div class="row g-2">
+        <div class="col-md-4">
+          <input type="search" id="pat-search" class="form-control form-control-sm" placeholder="Search patients…" />
+        </div>
+        <div class="col-md-3">
+          <select id="pat-filter-status" class="form-select form-select-sm">
+            <option value="">All Statuses</option>
+            <option>Awaiting Ambulance</option><option>Ambulance Assigned</option><option>In Transit</option>
+            <option>Admitted</option><option>Under Emergency Care</option><option>Discharged</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="c-card">
+    <div class="table-responsive">
+      <table class="table tbl table-hover">
+        <thead><tr><th>ID</th><th>Patient</th><th>Emergency Type</th><th>Condition</th><th>Ambulance</th><th>Hospital</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="pat-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ ASSIGNMENTS ════════════════════ -->
+<section id="section-assignments" class="page-section">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2><i class="bi bi-calendar2-check-fill"></i> Emergency Assignments</h2>
+      <p>Coordinate ambulance and hospital assignments</p>
+    </div>
+    <div class="page-header-right">
+      <button class="btn btn-sm btn-danger" onclick="openAddAssignment()"><i class="bi bi-plus-circle me-1"></i>Create Assignment</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick="exportAssignments()"><i class="bi bi-download me-1"></i>CSV</button>
+    </div>
+  </div>
+
+  <div class="c-card">
+    <div class="table-responsive">
+      <table class="table tbl table-hover">
+        <thead><tr><th>ID</th><th>Emergency</th><th>Ambulance</th><th>Driver</th><th>Hospital</th><th>Date/Time</th><th>ETA</th><th>Status</th></tr></thead>
+        <tbody id="asgn-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ HISTORY ════════════════════ -->
+<section id="section-history" class="page-section">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2><i class="bi bi-clock-history"></i> Emergency History</h2>
+      <p>Completed emergency response records</p>
+    </div>
+    <div class="page-header-right">
+      <button class="btn btn-sm btn-outline-secondary" onclick="exportHistory()"><i class="bi bi-download me-1"></i>Export CSV</button>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-4 col-6">
+      <div class="stat-card">
+        <div class="stat-icon ic-blue"><i class="bi bi-check-all"></i></div>
+        <div class="stat-body"><div class="stat-value" id="hist-stat-count">—</div><div class="stat-label">Total Completed</div></div>
+      </div>
+    </div>
+    <div class="col-md-4 col-6">
+      <div class="stat-card">
+        <div class="stat-icon ic-green"><i class="bi bi-stopwatch-fill"></i></div>
+        <div class="stat-body"><div class="stat-value" id="hist-stat-avg">—</div><div class="stat-label">Avg. Response Time</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="c-card mb-3">
+    <div class="c-card-body">
+      <div class="row g-2">
+        <div class="col-md-4">
+          <input type="search" id="hist-search" class="form-control form-control-sm" placeholder="Search history…" />
+        </div>
+        <div class="col-md-2">
+          <select id="hist-filter-type" class="form-select form-select-sm">
+            <option value="">All Types</option>
+            <option>Road Accident</option><option>Cardiac Emergency</option><option>Medical Emergency</option>
+            <option>Fire Emergency</option><option>Trauma</option><option>Stroke</option>
+            <option>Respiratory Emergency</option><option>Other</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <select id="hist-filter-priority" class="form-select form-select-sm">
+            <option value="">All Priorities</option>
+            <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="c-card">
+    <div class="table-responsive">
+      <table class="table tbl table-hover">
+        <thead><tr><th>ID</th><th>Patient</th><th>Emergency Type</th><th>Hospital</th><th>Ambulance</th><th>Response Time</th><th>Date</th><th>Status</th></tr></thead>
+        <tbody id="hist-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ NOTIFICATIONS ════════════════════ -->
+<section id="section-notifications" class="page-section">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2><i class="bi bi-bell-fill"></i> Family Notifications</h2>
+      <p>Simulated emergency status notifications — <em>Demo only. No real messages are sent.</em></p>
+    </div>
+  </div>
+
+  <div class="alert alert-warning py-2 px-3 mb-3" style="font-size:0.8rem">
+    <i class="bi bi-info-circle-fill me-1"></i>
+    <strong>Simulation Notice:</strong> Notifications displayed here are simulated within the application only. No real SMS, email, WhatsApp, or push notifications are sent.
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="c-card">
+        <div class="c-card-header"><h5><i class="bi bi-list-ul"></i> Notification History</h5></div>
+        <div id="notif-list"></div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="c-card">
+        <div class="c-card-header"><h5><i class="bi bi-play-circle-fill text-primary"></i> Simulate Notification</h5></div>
+        <div class="c-card-body">
+          <p style="font-size:0.78rem;color:var(--text-muted)">Select an active emergency to simulate a status notification:</p>
+          <div id="notif-sim-body"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ CORPORATE ════════════════════ -->
+<section id="section-corporate" class="page-section">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2><i class="bi bi-building-fill"></i> Corporate Emergencies</h2>
+      <p>Workplace and organizational emergency management</p>
+    </div>
+    <div class="page-header-right">
+      <button class="btn btn-sm btn-danger" onclick="openAddCorp()"><i class="bi bi-plus-circle me-1"></i>Register Organization</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick="exportCorporate()"><i class="bi bi-download me-1"></i>CSV</button>
+    </div>
+  </div>
+
+  <div class="c-card mb-3">
+    <div class="c-card-body">
+      <input type="search" id="corp-search" class="form-control form-control-sm" style="max-width:320px" placeholder="Search organizations…" />
+    </div>
+  </div>
+
+  <div class="c-card">
+    <div class="table-responsive">
+      <table class="table tbl table-hover">
+        <thead><tr><th>ID</th><th>Organization</th><th>Location</th><th>Contact</th><th>Emergency Type</th><th>Employees</th><th>Status</th></tr></thead>
+        <tbody id="corp-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ SETTINGS ════════════════════ -->
+<section id="section-settings" class="page-section">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2><i class="bi bi-gear-fill"></i> Settings</h2>
+      <p>Application data management and export tools</p>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="c-card mb-3">
+        <div class="c-card-header"><h5><i class="bi bi-cloud-download-fill text-primary"></i> CSV Export</h5></div>
+        <div class="c-card-body">
+          <p style="font-size:0.8rem;color:var(--text-muted)">Download all module data as CSV files:</p>
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-sm btn-outline-danger" onclick="exportRequests()"><i class="bi bi-download me-1"></i>Emergency Requests</button>
+            <button class="btn btn-sm btn-outline-warning text-dark" onclick="exportAmbulances()"><i class="bi bi-download me-1"></i>Ambulances</button>
+            <button class="btn btn-sm btn-outline-success" onclick="exportHospitals()"><i class="bi bi-download me-1"></i>Hospitals</button>
+            <button class="btn btn-sm btn-outline-primary" onclick="exportPatients()"><i class="bi bi-download me-1"></i>Patients</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="exportAssignments()"><i class="bi bi-download me-1"></i>Assignments</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="exportHistory()"><i class="bi bi-download me-1"></i>History</button>
+            <button class="btn btn-sm btn-outline-dark" onclick="exportCorporate()"><i class="bi bi-download me-1"></i>Corporate</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="c-card">
+        <div class="c-card-header"><h5><i class="bi bi-cloud-upload-fill text-success"></i> CSV Import</h5></div>
+        <div class="c-card-body">
+          <p style="font-size:0.8rem;color:var(--text-muted)">Import data from CSV. Duplicate IDs will be skipped automatically.</p>
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-sm btn-outline-warning text-dark" onclick="importCSV('ambulances')"><i class="bi bi-upload me-1"></i>Import Ambulances</button>
+            <button class="btn btn-sm btn-outline-success" onclick="importCSV('hospitals')"><i class="bi bi-upload me-1"></i>Import Hospitals</button>
+            <button class="btn btn-sm btn-outline-primary" onclick="importCSV('patients')"><i class="bi bi-upload me-1"></i>Import Patients</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="c-card mb-3">
+        <div class="c-card-header"><h5><i class="bi bi-arrow-counterclockwise text-warning"></i> Reset Demo Data</h5></div>
+        <div class="c-card-body">
+          <p style="font-size:0.8rem;color:var(--text-muted)">Restore all sample data to the default demo values. Your changes will be discarded.</p>
+          <button class="btn btn-warning btn-sm" onclick="resetDemoData()"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset to Demo Defaults</button>
+        </div>
+      </div>
+
+      <div class="c-card">
+        <div class="c-card-header"><h5><i class="bi bi-trash3-fill text-danger"></i> Clear All Data</h5></div>
+        <div class="c-card-body">
+          <p style="font-size:0.8rem;color:var(--text-muted)">Permanently delete all records from this browser's LocalStorage. This action requires confirmation and cannot be undone.</p>
+          <button class="btn btn-outline-danger btn-sm" onclick="clearAllData()"><i class="bi bi-trash3 me-1"></i>Clear All Data</button>
+        </div>
+      </div>
+
+      <div class="c-card mt-3">
+        <div class="c-card-header"><h5><i class="bi bi-info-circle-fill text-info"></i> About</h5></div>
+        <div class="c-card-body" style="font-size:0.82rem">
+          <strong>RESQORA – LifeLine AI</strong><br>
+          Version 3.0 — Multi-Portal Upgrade<br>
+          Backend: <strong id="about-db-mode">LocalStorage (Demo)</strong><br><br>
+          <span style="color:var(--text-muted)">Demo application. LocalStorage is used by default. Connect Supabase credentials to enable shared real-time data across portals. This application does not connect to real emergency services, hospitals, or ambulance tracking systems.</span>
+          <hr>
+          <strong>Connected Portals:</strong><br>
+          <div class="d-flex flex-wrap gap-2 mt-2">
+            <a href="citizen.html" target="_blank" class="btn btn-sm btn-outline-danger"><i class="bi bi-people-fill me-1"></i>Citizen Portal</a>
+            <a href="ambulance.html" target="_blank" class="btn btn-sm btn-outline-warning text-dark"><i class="bi bi-truck-front-fill me-1"></i>Ambulance Portal</a>
+            <a href="hospital.html" target="_blank" class="btn btn-sm btn-outline-success"><i class="bi bi-hospital-fill me-1"></i>Hospital Portal</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ LIVE MAP ════════════════════ -->
+<section id="section-livemap" class="page-section">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h2><i class="bi bi-map-fill"></i> Live Emergency Map</h2>
+      <p>Ambulance, patient, and hospital locations — <em>Positions shown are last recorded values. Not real-time GPS streaming.</em></p>
+    </div>
+    <div class="page-header-right">
+      <button class="btn btn-sm btn-outline-secondary" onclick="renderLiveMap()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh Map</button>
+    </div>
+  </div>
+  <div class="alert alert-warning py-2 px-3 mb-3" style="font-size:0.78rem">
+    <i class="bi bi-info-circle-fill me-1"></i>
+    <strong>Map Notice:</strong> Positions shown are the last recorded coordinates from ambulance records or GPS updates. Continuous live tracking requires HTTPS, browser GPS permission from each ambulance device, and an active Supabase Realtime connection.
+  </div>
+  <div class="c-card mb-3">
+    <div class="c-card-header">
+      <h5><i class="bi bi-layers-fill text-primary"></i> Map Legend</h5>
+    </div>
+    <div class="c-card-body">
+      <div class="d-flex flex-wrap gap-3" style="font-size:0.8rem">
+        <span><span style="display:inline-block;width:14px;height:14px;background:var(--red);border-radius:50%;margin-right:5px;vertical-align:middle"></span>Emergency Patient Location</span>
+        <span><span style="display:inline-block;width:14px;height:14px;background:var(--orange);border-radius:50%;margin-right:5px;vertical-align:middle"></span>Ambulance (last position)</span>
+        <span><span style="display:inline-block;width:14px;height:14px;background:var(--blue);border-radius:4px;margin-right:5px;vertical-align:middle"></span>Hospital</span>
+      </div>
+    </div>
+  </div>
+  <div class="c-card">
+    <div id="live-map" style="height:500px;border-radius:0 0 12px 12px;background:#e8edf2;"></div>
+  </div>
+</section>
+
+<!-- ════════════════════ FOOTER ════════════════════ -->
+<footer id="app-footer">
+  RESQORA | LifeLine AI | Designed &amp; Developed by Sindhu Raj B
+</footer>
+
+</main><!-- /main-content -->
+
+<!-- ══════════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════════ -->
+
+<!-- Emergency Request Modal -->
+<div class="modal fade" id="reqModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="reqModalTitle">New Emergency Request</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="reqForm" novalidate>
+          <input type="hidden" id="reqId" />
+          <div class="mb-2 text-muted" style="font-size:0.75rem">Request ID: <strong id="reqIdDisplay">(auto-generated)</strong></div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Patient Name <span class="text-danger">*</span></label>
+              <input type="text" id="reqPatientName" class="form-control form-control-sm" required placeholder="Full name" />
+              <div class="invalid-feedback">Patient name is required.</div>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Age <span class="text-danger">*</span></label>
+              <input type="number" id="reqAge" class="form-control form-control-sm" required min="0" max="120" placeholder="Age" />
+              <div class="invalid-feedback">Valid age required.</div>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Gender <span class="text-danger">*</span></label>
+              <select id="reqGender" class="form-select form-select-sm" required>
+                <option value="">Select</option>
+                <option>Male</option><option>Female</option><option>Other</option>
+              </select>
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Contact Number <span class="text-danger">*</span></label>
+              <input type="text" id="reqContact" class="form-control form-control-sm" required data-phone placeholder="10-digit number" />
+              <div class="invalid-feedback">Valid phone number required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Emergency Type <span class="text-danger">*</span></label>
+              <select id="reqEmergencyType" class="form-select form-select-sm" required>
+                <option value="">Select Type</option>
+                <option>Road Accident</option><option>Cardiac Emergency</option><option>Medical Emergency</option>
+                <option>Fire Emergency</option><option>Trauma</option><option>Stroke</option>
+                <option>Respiratory Emergency</option><option>Other</option>
+              </select>
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Patient Condition <span class="text-danger">*</span></label>
+              <input type="text" id="reqCondition" class="form-control form-control-sm" required placeholder="e.g. Critical, Stable" />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Priority <span class="text-danger">*</span></label>
+              <select id="reqPriority" class="form-select form-select-sm" required>
+                <option value="">Select Priority</option>
+                <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
+              </select>
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-8">
+              <label class="form-label">Emergency Location <span class="text-danger">*</span></label>
+              <input type="text" id="reqLocation" class="form-control form-control-sm" required placeholder="Street address, landmark" />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Latitude</label>
+              <input type="text" id="reqLat" class="form-control form-control-sm" placeholder="12.9716" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Longitude</label>
+              <input type="text" id="reqLng" class="form-control form-control-sm" placeholder="77.5946" />
+            </div>
+            <div class="col-12">
+              <label class="form-label">Emergency Description</label>
+              <textarea id="reqDescription" class="form-control form-control-sm" rows="2" placeholder="Brief description of the emergency…"></textarea>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Assign Ambulance</label>
+              <select id="reqAmbulance" class="form-select form-select-sm">
+                <option value="">-- Select Available Ambulance --</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Assign Hospital</label>
+              <select id="reqHospital" class="form-select form-select-sm">
+                <option value="">-- Select Hospital --</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">ETA</label>
+              <input type="text" id="reqEta" class="form-control form-control-sm" placeholder="e.g. 12 Minutes" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Status <span class="text-danger">*</span></label>
+              <select id="reqStatus" class="form-select form-select-sm" required>
+                <option value="">Select</option>
+                <option>Pending</option><option>Ambulance Assigned</option><option>Ambulance Dispatched</option>
+                <option>Patient Picked Up</option><option>Hospital Assigned</option>
+                <option>Patient In Transit</option><option>Arrived at Hospital</option>
+                <option>Completed</option><option>Cancelled</option>
+              </select>
+              <div class="invalid-feedback">Required.</div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-danger" id="btn-save-req"><i class="bi bi-check-circle me-1"></i>Save Request</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Request Detail Modal -->
+<div class="modal fade" id="reqDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Emergency Request Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0" id="reqDetailBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Ambulance Modal -->
+<div class="modal fade" id="ambModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="ambModalTitle">Add Ambulance</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="ambForm" novalidate>
+          <input type="hidden" id="ambId" />
+          <div class="mb-2 text-muted" style="font-size:0.75rem">Ambulance ID: <strong id="ambIdDisplay">(auto-generated)</strong></div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Registration Number <span class="text-danger">*</span></label>
+              <input type="text" id="ambRegNo" class="form-control form-control-sm" required placeholder="KA01AB1234" />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Ambulance Type <span class="text-danger">*</span></label>
+              <select id="ambType" class="form-select form-select-sm" required>
+                <option value="">Select Type</option>
+                <option>Basic Life Support (BLS)</option>
+                <option>Advanced Life Support (ALS)</option>
+                <option>Patient Transport Ambulance</option>
+                <option>Neonatal Ambulance</option>
+              </select>
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Driver Name <span class="text-danger">*</span></label>
+              <input type="text" id="ambDriver" class="form-control form-control-sm" required placeholder="Driver full name" />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Driver Contact <span class="text-danger">*</span></label>
+              <input type="text" id="ambDriverContact" class="form-control form-control-sm" required data-phone placeholder="10-digit number" />
+              <div class="invalid-feedback">Valid number required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Medical Staff Name</label>
+              <input type="text" id="ambMedicalStaff" class="form-control form-control-sm" placeholder="Doctor or Nurse name" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Status <span class="text-danger">*</span></label>
+              <select id="ambStatus" class="form-select form-select-sm" required>
+                <option value="">Select</option>
+                <option>Available</option><option>On Emergency Duty</option><option>Dispatched</option>
+                <option>Transporting Patient</option><option>At Hospital</option><option>Maintenance</option>
+              </select>
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Current Location <span class="text-danger">*</span></label>
+              <input type="text" id="ambLocation" class="form-control form-control-sm" required placeholder="Area, City" />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Latitude</label>
+              <input type="text" id="ambLat" class="form-control form-control-sm" placeholder="12.9716" />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Longitude</label>
+              <input type="text" id="ambLng" class="form-control form-control-sm" placeholder="77.5946" />
+            </div>
+            <div class="col-12">
+              <label class="form-label">Equipment Available</label>
+              <textarea id="ambEquipment" class="form-control form-control-sm" rows="2" placeholder="Defibrillator, Oxygen, Stretcher…"></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-danger" id="btn-save-amb"><i class="bi bi-check-circle me-1"></i>Save Ambulance</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Ambulance Detail Modal -->
+<div class="modal fade" id="ambDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Ambulance Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0" id="ambDetailBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Hospital Modal -->
+<div class="modal fade" id="hospModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="hospModalTitle">Add Hospital</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="hospForm" novalidate>
+          <input type="hidden" id="hospId" />
+          <div class="mb-2 text-muted" style="font-size:0.75rem">Hospital ID: <strong id="hospIdDisplay">(auto-generated)</strong></div>
+          <div class="row g-3">
+            <div class="col-md-5">
+              <label class="form-label">Hospital Name <span class="text-danger">*</span></label>
+              <input type="text" id="hospName" class="form-control form-control-sm" required placeholder="Hospital name" />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Address <span class="text-danger">*</span></label>
+              <input type="text" id="hospAddress" class="form-control form-control-sm" required placeholder="Street address" />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">City <span class="text-danger">*</span></label>
+              <input type="text" id="hospCity" class="form-control form-control-sm" required placeholder="City" />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Contact Number <span class="text-danger">*</span></label>
+              <input type="text" id="hospContact" class="form-control form-control-sm" required data-phone placeholder="Phone number" />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Emergency Beds <span class="text-danger">*</span></label>
+              <input type="number" id="hospEmergencyBeds" class="form-control form-control-sm" required min="0" placeholder="0" />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Total Emerg. Beds</label>
+              <input type="number" id="hospTotalEmergencyBeds" class="form-control form-control-sm" min="0" placeholder="Max capacity" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">ICU Beds</label>
+              <input type="number" id="hospIcuBeds" class="form-control form-control-sm" min="0" placeholder="0" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Total ICU Beds</label>
+              <input type="number" id="hospTotalIcuBeds" class="form-control form-control-sm" min="0" placeholder="Max ICU" />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Receiving Capacity</label>
+              <input type="number" id="hospReceivingCapacity" class="form-control form-control-sm" min="0" placeholder="Max ambulances" />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Latitude</label>
+              <input type="text" id="hospLat" class="form-control form-control-sm" placeholder="12.9716" />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Longitude</label>
+              <input type="text" id="hospLng" class="form-control form-control-sm" placeholder="77.5946" />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Status <span class="text-danger">*</span></label>
+              <select id="hospStatus" class="form-select form-select-sm" required>
+                <option value="">Select</option>
+                <option>Accepting Emergency Patients</option>
+                <option>Limited Emergency Capacity</option>
+                <option>Emergency Department Full</option>
+                <option>Temporarily Unavailable</option>
+              </select>
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-12">
+              <label class="form-label d-block">Facilities Available</label>
+              <div class="d-flex flex-wrap gap-3">
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="hospEmergencyDept" /><label class="form-check-label" for="hospEmergencyDept" style="font-size:0.8rem">Emergency Dept</label></div>
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="hospTraumaCare" /><label class="form-check-label" for="hospTraumaCare" style="font-size:0.8rem">Trauma Care</label></div>
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="hospCardiacCare" /><label class="form-check-label" for="hospCardiacCare" style="font-size:0.8rem">Cardiac Care</label></div>
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="hospStrokeCare" /><label class="form-check-label" for="hospStrokeCare" style="font-size:0.8rem">Stroke Care</label></div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-danger" id="btn-save-hosp"><i class="bi bi-check-circle me-1"></i>Save Hospital</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hospital Detail Modal -->
+<div class="modal fade" id="hospDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Hospital Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0" id="hospDetailBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Patient Modal -->
+<div class="modal fade" id="patModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="patModalTitle">Add Patient</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="patForm" novalidate>
+          <input type="hidden" id="patId" />
+          <div class="mb-2 text-muted" style="font-size:0.75rem">Patient ID: <strong id="patIdDisplay">(auto-generated)</strong></div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Patient Name <span class="text-danger">*</span></label>
+              <input type="text" id="patName" class="form-control form-control-sm" required placeholder="Full name" />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Age <span class="text-danger">*</span></label>
+              <input type="number" id="patAge" class="form-control form-control-sm" required min="0" max="120" />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Gender <span class="text-danger">*</span></label>
+              <select id="patGender" class="form-select form-select-sm" required>
+                <option value="">Select</option><option>Male</option><option>Female</option><option>Other</option>
+              </select>
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Contact</label>
+              <input type="text" id="patContact" class="form-control form-control-sm" data-phone placeholder="Phone" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Emergency Type <span class="text-danger">*</span></label>
+              <select id="patEmergencyType" class="form-select form-select-sm" required>
+                <option value="">Select Type</option>
+                <option>Road Accident</option><option>Cardiac Emergency</option><option>Medical Emergency</option>
+                <option>Fire Emergency</option><option>Trauma</option><option>Stroke</option>
+                <option>Respiratory Emergency</option><option>Other</option>
+              </select>
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Condition <span class="text-danger">*</span></label>
+              <input type="text" id="patCondition" class="form-control form-control-sm" required placeholder="e.g. Critical, Stable" />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Emergency ID</label>
+              <input type="text" id="patAssignedEmergencyId" class="form-control form-control-sm" placeholder="RESQ-XXXX" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Ambulance</label>
+              <select id="patAssignedAmbulance" class="form-select form-select-sm"></select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Hospital</label>
+              <select id="patAssignedHospital" class="form-select form-select-sm"></select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Status <span class="text-danger">*</span></label>
+              <select id="patStatus" class="form-select form-select-sm" required>
+                <option value="">Select</option>
+                <option>Awaiting Ambulance</option><option>Ambulance Assigned</option><option>In Transit</option>
+                <option>Admitted</option><option>Under Emergency Care</option><option>Discharged</option>
+              </select>
+              <div class="invalid-feedback">Required.</div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-danger" id="btn-save-pat"><i class="bi bi-check-circle me-1"></i>Save Patient</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Patient Detail Modal -->
+<div class="modal fade" id="patDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Patient Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0" id="patDetailBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Assignment Modal -->
+<div class="modal fade" id="asgnModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Create Emergency Assignment</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="asgnForm" novalidate>
+          <input type="hidden" id="asgnId" />
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Emergency ID <span class="text-danger">*</span></label>
+              <select id="asgnEmergencyId" class="form-select form-select-sm" required>
+                <option value="">Select Emergency</option>
+              </select>
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Ambulance <span class="text-danger">*</span></label>
+              <select id="asgnAmbulanceId" class="form-select form-select-sm" required>
+                <option value="">Select Ambulance</option>
+              </select>
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Hospital <span class="text-danger">*</span></label>
+              <select id="asgnHospital" class="form-select form-select-sm" required>
+                <option value="">Select Hospital</option>
+              </select>
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Driver Name <span class="text-danger">*</span></label>
+              <input type="text" id="asgnDriver" class="form-control form-control-sm" required placeholder="Driver name" />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Medical Staff</label>
+              <input type="text" id="asgnMedicalStaff" class="form-control form-control-sm" placeholder="Doctor/Nurse name" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Date <span class="text-danger">*</span></label>
+              <input type="date" id="asgnDate" class="form-control form-control-sm" required />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Time <span class="text-danger">*</span></label>
+              <input type="time" id="asgnTime" class="form-control form-control-sm" required />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">ETA</label>
+              <input type="text" id="asgnEta" class="form-control form-control-sm" placeholder="e.g. 10 min" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Status <span class="text-danger">*</span></label>
+              <select id="asgnStatus" class="form-select form-select-sm" required>
+                <option value="">Select</option>
+                <option>Active</option><option>Completed</option><option>Cancelled</option>
+              </select>
+              <div class="invalid-feedback">Required.</div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-danger" id="btn-save-asgn"><i class="bi bi-check-circle me-1"></i>Save Assignment</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Corporate Modal -->
+<div class="modal fade" id="corpModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Corporate Organization</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="corpForm" novalidate>
+          <input type="hidden" id="corpId" />
+          <div class="mb-2 text-muted" style="font-size:0.75rem">Org ID: <strong id="corpIdDisplay">(auto-generated)</strong></div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Organization Name <span class="text-danger">*</span></label>
+              <input type="text" id="corpOrgName" class="form-control form-control-sm" required />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Workplace Location <span class="text-danger">*</span></label>
+              <input type="text" id="corpLocation" class="form-control form-control-sm" required />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Contact Person <span class="text-danger">*</span></label>
+              <input type="text" id="corpContactPerson" class="form-control form-control-sm" required />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Contact Number <span class="text-danger">*</span></label>
+              <input type="text" id="corpContact" class="form-control form-control-sm" required data-phone />
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Employee Count</label>
+              <input type="number" id="corpEmployeeCount" class="form-control form-control-sm" min="1" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Emergency Type <span class="text-danger">*</span></label>
+              <select id="corpEmergencyType" class="form-select form-select-sm" required>
+                <option value="">Select</option>
+                <option>Road Accident</option><option>Cardiac Emergency</option><option>Medical Emergency</option>
+                <option>Fire Emergency</option><option>Trauma</option><option>Stroke</option>
+                <option>Respiratory Emergency</option><option>Other</option>
+              </select>
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Emergency Status <span class="text-danger">*</span></label>
+              <select id="corpEmergencyStatus" class="form-select form-select-sm" required>
+                <option value="">Select</option>
+                <option>Active</option><option>Resolved</option><option>Pending</option>
+              </select>
+              <div class="invalid-feedback">Required.</div>
+            </div>
+            <div class="col-md-4"><!-- spacer --></div>
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea id="corpNotes" class="form-control form-control-sm" rows="2"></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-danger" id="btn-save-corp"><i class="bi bi-check-circle me-1"></i>Save Organization</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AI Recommendation Modal -->
+<div class="modal fade" id="aiModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header" style="background:linear-gradient(135deg,#7c3aed,#2563eb)">
+        <h5 class="modal-title"><i class="bi bi-stars me-2"></i>AI Hospital Recommendation</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="aiReqInfo"></div>
+        <div id="aiResults"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Route Modal -->
+<div class="modal fade" id="routeModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-map-fill me-2"></i>Ambulance Route Simulation</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="routeInfo"></div>
+        <div class="row g-3">
+          <div class="col-md-5">
+            <div id="routeCards"></div>
+          </div>
+          <div class="col-md-7">
+            <div id="route-map"></div>
+            <p class="text-muted mt-2" style="font-size:0.72rem"><i class="bi bi-info-circle me-1"></i>Map powered by OpenStreetMap. Routes shown are simulated and do not reflect actual road conditions.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="supabase.js"></script>
+<script src="resqora.js"></script>
+
+</body>
+</html>

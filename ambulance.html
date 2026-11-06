@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RESQORA – Ambulance Responder Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
+  <style>
+    :root{
+      --red:#d63031;--navy:#0a1628;--navy-light:#1a3060;
+      --green:#16a34a;--orange:#d97706;--blue:#2563eb;
+      --grey-bg:#f0f2f5;--border:#dde2ea;--text-muted:#6b7280;
+    }
+    *{box-sizing:border-box;}
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--grey-bg);margin:0;min-height:100vh;}
+
+    /* Topbar */
+    .amb-topbar{background:var(--navy);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+    .amb-brand{display:flex;align-items:center;gap:10px;font-size:1.05rem;font-weight:800;}
+    .amb-brand-icon{width:36px;height:36px;background:var(--orange);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+    .portal-nav-links{display:flex;gap:8px;flex-wrap:wrap;}
+    .pnl{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:5px 13px;border-radius:20px;font-size:0.75rem;text-decoration:none;transition:background 0.15s;}
+    .pnl:hover{background:rgba(255,255,255,0.22);color:#fff;}
+    .pnl.active{background:var(--orange);border-color:var(--orange);}
+
+    /* Login screen */
+    .login-wrap{max-width:420px;margin:60px auto;padding:0 16px;}
+    .login-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:32px;box-shadow:0 4px 18px rgba(0,0,0,0.07);}
+    .login-title{font-size:1.2rem;font-weight:800;color:var(--navy);margin-bottom:4px;}
+    .login-sub{font-size:0.8rem;color:var(--text-muted);margin-bottom:22px;}
+
+    /* Main layout */
+    .amb-main{max-width:900px;margin:0 auto;padding:22px 16px 48px;}
+
+    /* Status bar */
+    .status-bar{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+    .sb-item label{font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;display:block;}
+    .sb-item span{font-size:0.9rem;font-weight:700;color:var(--navy);}
+
+    /* GPS share button */
+    .btn-gps-share{border:none;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;display:flex;align-items:center;gap:6px;transition:all 0.15s;}
+    .btn-gps-share.off{background:#f0fdf4;color:var(--green);border:1px solid #86efac;}
+    .btn-gps-share.on{background:var(--green);color:#fff;}
+    .gps-dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+
+    /* Cards */
+    .a-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
+    .a-card-title{font-size:0.92rem;font-weight:700;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+
+    /* Request card */
+    .req-card{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;}
+    .req-card-top{background:linear-gradient(135deg,var(--navy),var(--navy-light));padding:14px 18px;color:#fff;}
+    .req-card-body{padding:14px 18px;}
+    .req-card-top .rid{font-size:0.7rem;color:rgba(255,255,255,0.55);letter-spacing:1px;text-transform:uppercase;}
+    .req-card-top h5{font-size:1rem;font-weight:800;margin:4px 0 2px;}
+    .req-card-top .rsub{font-size:0.78rem;color:rgba(255,255,255,0.65);}
+
+    /* Status badges */
+    .sbadge{display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;font-weight:600;padding:3px 9px;border-radius:20px;border:1px solid transparent;}
+    .sb-critical{background:#fef2f2;color:#b91c1c;border-color:#fca5a5;}
+    .sb-high{background:#fff7ed;color:#c2410c;border-color:#fdba74;}
+    .sb-medium{background:#fefce8;color:#854d0e;border-color:#fde047;}
+    .sb-low{background:#f0fdf4;color:#15803d;border-color:#86efac;}
+    .sb-pending{background:#fefce8;color:#854d0e;border-color:#fde047;}
+    .sb-assigned{background:#fff7ed;color:#c2410c;border-color:#fdba74;}
+    .sb-transit{background:#faf5ff;color:#6d28d9;border-color:#c4b5fd;}
+    .sb-done{background:#f0fdf4;color:#15803d;border-color:#86efac;}
+
+    /* Detail row */
+    .d-row{display:flex;gap:8px;margin-bottom:8px;font-size:0.82rem;}
+    .d-label{color:var(--text-muted);font-weight:600;min-width:130px;flex-shrink:0;}
+    .d-value{color:var(--navy);}
+
+    /* Map */
+    #amb-nav-map{height:280px;border-radius:10px;border:1px solid var(--border);background:#e8edf2;margin-top:12px;}
+
+    /* Form */
+    .form-label{font-size:0.78rem;font-weight:600;color:var(--navy);margin-bottom:4px;}
+    .form-control,.form-select{font-size:0.83rem;border-radius:8px;border-color:var(--border);}
+    .form-control:focus,.form-select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
+
+    /* Toast */
+    .toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;}
+
+    /* Empty state */
+    .empty-state{text-align:center;padding:40px 20px;color:var(--text-muted);}
+    .empty-state i{font-size:2.2rem;display:block;margin-bottom:10px;opacity:0.35;}
+
+    /* Disclaimer */
+    .disclaimer{background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:9px 13px;font-size:0.74rem;color:#854d0e;margin-bottom:14px;}
+
+    @media(max-width:575px){
+      .status-bar{flex-direction:column;gap:8px;}
+      .amb-topbar{padding:10px 14px;}
+    }
+  </style>
+</head>
+<body>
+
+<div class="toast-container" id="amb-toasts"></div>
+
+<!-- Topbar -->
+<div class="amb-topbar">
+  <div class="amb-brand">
+    <div class="amb-brand-icon"><i class="bi bi-truck-front-fill"></i></div>
+    <div>
+      <div>RESQORA</div>
+      <div style="font-size:0.65rem;opacity:0.55;font-weight:400;text-transform:uppercase;letter-spacing:0.8px">Ambulance Responder Portal</div>
+    </div>
+  </div>
+  <div class="portal-nav-links">
+    <a href="citizen.html" class="pnl"><i class="bi bi-people-fill me-1"></i>Citizen</a>
+    <a href="hospital.html" class="pnl"><i class="bi bi-hospital-fill me-1"></i>Hospital</a>
+    <a href="index.html" class="pnl"><i class="bi bi-shield-fill-check me-1"></i>Admin</a>
+    <a href="#" class="pnl active" id="amb-logout-btn" onclick="ambLogout(); return false;"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
+  </div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="amb-login-screen">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="text-center mb-4">
+        <div style="width:56px;height:56px;background:var(--orange);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;color:#fff;margin:0 auto 12px"><i class="bi bi-truck-front-fill"></i></div>
+        <div class="login-title">Ambulance Responder Login</div>
+        <div class="login-sub">Enter your ambulance credentials to access assigned emergencies</div>
+      </div>
+      <div class="disclaimer"><i class="bi bi-info-circle me-1"></i><strong>Demo Portal.</strong> Use any Ambulance ID and PIN to log in. In production this would use secure authentication.</div>
+      <div class="mb-3">
+        <label class="form-label">Ambulance ID <span class="text-danger">*</span></label>
+        <select id="amb-login-id" class="form-select"></select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Access PIN (Demo: any 4 digits)</label>
+        <input type="password" id="amb-login-pin" class="form-control" placeholder="Enter PIN" maxlength="6" />
+      </div>
+      <div id="amb-login-error" class="text-danger mb-2" style="font-size:0.78rem;display:none"></div>
+      <button class="btn btn-warning w-100 fw-bold" style="color:#fff" onclick="ambLogin()"><i class="bi bi-truck-front-fill me-2"></i>Login as Responder</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN PORTAL (hidden until login) -->
+<div id="amb-portal" style="display:none">
+  <div class="amb-main">
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="sb-item">
+        <label>Logged in as</label>
+        <span id="amb-logged-name">—</span>
+      </div>
+      <div class="sb-item">
+        <label>Ambulance ID</label>
+        <span id="amb-logged-id">—</span>
+      </div>
+      <div class="sb-item">
+        <label>Current Status</label>
+        <span id="amb-logged-status">—</span>
+      </div>
+      <div class="sb-item">
+        <label>GPS Sharing</label>
+        <button class="btn-gps-share off" id="btn-gps-toggle" onclick="toggleGPSShare()">
+          <span class="gps-dot" id="gps-share-dot" style="background:#16a34a"></span>
+          <span id="gps-share-label">Start Sharing</span>
+        </button>
+      </div>
+      <button class="btn btn-sm btn-outline-secondary" onclick="ambRefresh()"><i class="bi bi-arrow-clockwise"></i></button>
+    </div>
+
+    <!-- GPS Info -->
+    <div id="gps-share-info" class="disclaimer" style="display:none">
+      <i class="bi bi-geo-alt-fill me-1"></i>
+      <strong>GPS Sharing Active.</strong> Your location is being updated every 10 seconds. Last update: <span id="gps-last-update">—</span><br>
+      <span id="gps-coords-display" style="font-size:0.7rem"></span><br>
+      <span style="font-size:0.7rem;opacity:0.75">GPS requires HTTPS and browser permission. Sharing stops when browser tab is closed or permission is revoked.</span>
+    </div>
+
+    <!-- Assigned Emergency -->
+    <div id="amb-assigned-section">
+      <div class="a-card">
+        <div class="a-card-title">
+          <span><i class="bi bi-lightning-charge-fill text-danger me-2"></i>Assigned Emergency</span>
+          <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:0.72rem" onclick="ambRefresh()"><i class="bi bi-arrow-clockwise"></i></button>
+        </div>
+        <div id="assigned-req-body"></div>
+      </div>
+    </div>
+
+    <!-- Navigation Map -->
+    <div class="a-card">
+      <div class="a-card-title"><i class="bi bi-map-fill text-primary me-2"></i>Navigation Map</div>
+      <div class="disclaimer"><i class="bi bi-info-circle me-1"></i>Map shows last recorded positions. Real-time tracking requires continuous GPS permission and HTTPS.</div>
+      <div id="amb-nav-map"></div>
+    </div>
+
+    <!-- Status Update -->
+    <div class="a-card">
+      <div class="a-card-title"><i class="bi bi-activity text-success me-2"></i>Update Assignment Status</div>
+      <div class="row g-2">
+        <div class="col-md-6">
+          <label class="form-label">New Status</label>
+          <select id="amb-status-update" class="form-select form-select-sm">
+            <option value="">Select status</option>
+            <option value="Available">Available</option>
+            <option value="On Emergency Duty">Assigned to Emergency</option>
+            <option value="Dispatched">Dispatched / En Route</option>
+            <option value="On Emergency Duty">Arrived at Patient</option>
+            <option value="Transporting Patient">Transporting Patient</option>
+            <option value="At Hospital">At Hospital</option>
+            <option value="Available">Completed / Return Available</option>
+          </select>
+        </div>
+        <div class="col-md-6 d-flex align-items-end">
+          <button class="btn btn-warning btn-sm w-100" style="color:#fff" onclick="updateAmbStatus()"><i class="bi bi-check-circle me-1"></i>Update My Status</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- All assigned requests history -->
+    <div class="a-card">
+      <div class="a-card-title"><i class="bi bi-list-ul text-navy me-2"></i>All Emergency Records <span style="font-size:0.75rem;font-weight:400;color:var(--text-muted)">(this ambulance)</span></div>
+      <div id="amb-history-list"></div>
+    </div>
+
+  </div>
+</div>
+
+<footer style="text-align:center;padding:16px;font-size:0.72rem;color:var(--text-muted);border-top:1px solid var(--border);background:#fff;margin-top:auto">
+  RESQORA | LifeLine AI | Ambulance Responder Portal | Designed &amp; Developed by Sindhu Raj B
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
+
+/* ── LS helpers (shared keys with resqora.js) ── */
+const ALS = {
+  get(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+};
+const AK = {
+  requests:'rsq_requests',ambulances:'rsq_ambulances',
+  hospitals:'rsq_hospitals',activity:'rsq_activity',counters:'rsq_counters'
+};
+function aGet(k){return ALS.get(k)||[];}
+function aSave(k,v){ALS.set(k,v);}
+
+/* ── State ── */
+let _ambId=null, _gpsWatchId=null, _gpsActive=false, _navMap=null;
+
+/* ── Toast ── */
+function aToast(msg,type='success'){
+  const id='at'+Date.now();
+  const icons={success:'bi-check-circle-fill',danger:'bi-exclamation-triangle-fill',warning:'bi-exclamation-circle-fill',info:'bi-info-circle-fill'};
+  const div=document.createElement('div');
+  div.className=`toast align-items-center text-white bg-${type} border-0 show mb-2`;div.id=id;
+  div.innerHTML=`<div class="d-flex"><div class="toast-body d-flex align-items-center gap-2"><i class="bi ${icons[type]||icons.info}"></i>${aEsc(msg)}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="document.getElementById('${id}').remove()"></button></div>`;
+  document.getElementById('amb-toasts').appendChild(div);
+  setTimeout(()=>{try{document.getElementById(id).remove();}catch(e){}},3500);
+}
+function aEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* ── Populate login dropdown ── */
+function populateAmbLogin(){
+  const ambs=aGet(AK.ambulances);
+  const sel=document.getElementById('amb-login-id');
+  sel.innerHTML='<option value="">Select Ambulance ID…</option>'+ambs.map(a=>`<option value="${a.id}">${aEsc(a.id)} — ${aEsc(a.driver)} (${aEsc(a.type)})</option>`).join('');
+}
+
+/* ── Login / Logout ── */
+function ambLogin(){
+  const id=document.getElementById('amb-login-id').value;
+  const pin=document.getElementById('amb-login-pin').value;
+  const errEl=document.getElementById('amb-login-error');
+  if(!id){errEl.textContent='Please select an Ambulance ID.';errEl.style.display='';return;}
+  if(!pin||pin.length<4){errEl.textContent='Enter a 4-digit PIN.';errEl.style.display='';return;}
+  errEl.style.display='none';
+  _ambId=id;
+  document.getElementById('amb-login-screen').style.display='none';
+  document.getElementById('amb-portal').style.display='';
+  renderAmbPortal();
+}
+
+function ambLogout(){
+  stopGPSShare();
+  _ambId=null;
+  document.getElementById('amb-portal').style.display='none';
+  document.getElementById('amb-login-screen').style.display='';
+}
+
+/* ── Render portal ── */
+function renderAmbPortal(){
+  if(!_ambId) return;
+  const ambs=aGet(AK.ambulances);
+  const amb=ambs.find(a=>a.id===_ambId);
+  if(!amb) return;
+
+  document.getElementById('amb-logged-name').textContent=amb.driver||'—';
+  document.getElementById('amb-logged-id').textContent=amb.id;
+  document.getElementById('amb-logged-status').innerHTML=aBadge(amb.status);
+
+  renderAssignedReq(amb);
+  renderNavMap(amb);
+  renderAmbHistory(amb);
+}
+
+function ambRefresh(){renderAmbPortal();}
+
+function renderAssignedReq(amb){
+  const body=document.getElementById('assigned-req-body');
+  if(!amb.assignedEmergency){
+    body.innerHTML=`<div class="empty-state"><i class="bi bi-inbox"></i><p>No active emergency assigned to this ambulance.</p></div>`;
+    return;
+  }
+  const reqs=aGet(AK.requests);
+  const req=reqs.find(r=>r.id===amb.assignedEmergency);
+  if(!req){
+    body.innerHTML=`<div style="font-size:0.82rem;color:var(--text-muted)">Emergency <strong>${aEsc(amb.assignedEmergency)}</strong> — record not found.</div>`;
+    return;
+  }
+  const hosps=aGet(AK.hospitals);
+  const h=(hosps.find(x=>x.id===req.assignedHospital)||{});
+  body.innerHTML=`
+    <div class="req-card">
+      <div class="req-card-top">
+        <div class="rid">Emergency ID: ${aEsc(req.id)}</div>
+        <h5>${aEsc(req.patientName)} &nbsp;${pBadge(req.priority)}</h5>
+        <div class="rsub"><i class="bi bi-geo-alt-fill me-1"></i>${aEsc(req.location)}</div>
+      </div>
+      <div class="req-card-body">
+        <div class="row g-0">
+          <div class="col-md-6">
+            ${dr('Emergency Type',req.emergencyType)}
+            ${dr('Condition',req.condition)}
+            ${dr('Age / Gender',req.age+' / '+req.gender)}
+            ${dr('Contact',req.contact)}
+          </div>
+          <div class="col-md-6">
+            ${dr('Coordinates',req.lat&&req.lng?req.lat+', '+req.lng:'Not available')}
+            ${dr('Hospital',h.name||req.assignedHospital||'Not assigned')}
+            ${dr('Hospital Address',h.address||'—')}
+            ${dr('Request Status',aBadge(req.status))}
+          </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap mt-3">
+          <button class="btn btn-sm btn-success" onclick="acceptEmergency('${req.id}')"><i class="bi bi-check-circle me-1"></i>Accept Assignment</button>
+          <button class="btn btn-sm btn-warning text-white" onclick="updateReqStatus('${req.id}','Ambulance Dispatched')"><i class="bi bi-truck-front-fill me-1"></i>Mark En Route</button>
+          <button class="btn btn-sm btn-primary" onclick="updateReqStatus('${req.id}','Patient Picked Up')"><i class="bi bi-person-fill me-1"></i>Patient Picked Up</button>
+          <button class="btn btn-sm btn-info text-white" onclick="updateReqStatus('${req.id}','Patient In Transit')"><i class="bi bi-activity me-1"></i>In Transit</button>
+          <button class="btn btn-sm btn-secondary" onclick="updateReqStatus('${req.id}','Arrived at Hospital')"><i class="bi bi-hospital-fill me-1"></i>Arrived Hospital</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function dr(label,val){return `<div class="d-row"><span class="d-label">${aEsc(label)}</span><span class="d-value">${val}</span></div>`;}
+
+function acceptEmergency(reqId){
+  const reqs=aGet(AK.requests);
+  const idx=reqs.findIndex(r=>r.id===reqId);
+  if(idx>-1){reqs[idx].status='Ambulance Dispatched';aSave(AK.requests,reqs);}
+  logActivity(`Ambulance ${_ambId} accepted emergency ${reqId}`,'orange');
+  aToast(`Emergency ${reqId} accepted.`,'success');
+  renderAmbPortal();
+}
+
+function updateReqStatus(reqId,status){
+  const reqs=aGet(AK.requests);
+  const idx=reqs.findIndex(r=>r.id===reqId);
+  if(idx>-1){reqs[idx].status=status;aSave(AK.requests,reqs);}
+  logActivity(`Emergency ${reqId} status updated to "${status}" by ${_ambId}`,'orange');
+  aToast(`Status updated: ${status}`,'success');
+  renderAmbPortal();
+}
+
+function updateAmbStatus(){
+  const newStatus=document.getElementById('amb-status-update').value;
+  if(!newStatus){aToast('Select a status first.','warning');return;}
+  const ambs=aGet(AK.ambulances);
+  const idx=ambs.findIndex(a=>a.id===_ambId);
+  if(idx>-1){
+    ambs[idx].status=newStatus;
+    if(newStatus==='Available'){ambs[idx].assignedEmergency='';}
+    aSave(AK.ambulances,ambs);
+  }
+  logActivity(`Ambulance ${_ambId} status: ${newStatus}`,'orange');
+  aToast(`Status updated to ${newStatus}`,'success');
+  renderAmbPortal();
+}
+
+/* ── GPS Sharing ── */
+function toggleGPSShare(){
+  if(_gpsActive) stopGPSShare();
+  else startGPSShare();
+}
+
+function startGPSShare(){
+  if(!navigator.geolocation){aToast('GPS not supported by this browser.','warning');return;}
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      _gpsActive=true;
+      updateAmbLocation(pos);
+      document.getElementById('btn-gps-toggle').className='btn-gps-share on';
+      document.getElementById('gps-share-label').textContent='Sharing Active';
+      document.getElementById('gps-share-dot').style.background='#fff';
+      document.getElementById('gps-share-info').style.display='';
+      // Watch position (will be denied if tab loses HTTPS or permission revoked)
+      _gpsWatchId=navigator.geolocation.watchPosition(
+        p=>updateAmbLocation(p),
+        e=>{ aToast('GPS signal lost: '+(['','Permission denied','Position unavailable','Timed out'][e.code]||'Unknown'),'warning'); stopGPSShare(); },
+        {enableHighAccuracy:true,maximumAge:5000,timeout:15000}
+      );
+      aToast('GPS sharing started.','success');
+    },
+    err=>{
+      const msgs={1:'GPS permission denied.',2:'GPS unavailable.',3:'GPS timed out.'};
+      aToast(msgs[err.code]||'GPS error.','warning');
+    },
+    {enableHighAccuracy:true,timeout:10000}
+  );
+}
+
+function stopGPSShare(){
+  if(_gpsWatchId!==null){navigator.geolocation.clearWatch(_gpsWatchId);_gpsWatchId=null;}
+  _gpsActive=false;
+  document.getElementById('btn-gps-toggle').className='btn-gps-share off';
+  document.getElementById('gps-share-label').textContent='Start Sharing';
+  document.getElementById('gps-share-dot').style.background='#16a34a';
+  document.getElementById('gps-share-info').style.display='none';
+}
+
+function updateAmbLocation(pos){
+  const lat=pos.coords.latitude.toFixed(6);
+  const lng=pos.coords.longitude.toFixed(6);
+  const acc=Math.round(pos.coords.accuracy);
+  const ambs=aGet(AK.ambulances);
+  const idx=ambs.findIndex(a=>a.id===_ambId);
+  if(idx>-1){
+    ambs[idx].lat=parseFloat(lat);
+    ambs[idx].lng=parseFloat(lng);
+    ambs[idx].lastGpsUpdate=new Date().toISOString();
+    ambs[idx].gpsAccuracy=acc;
+    aSave(AK.ambulances,ambs);
+  }
+  const now=new Date().toLocaleTimeString();
+  document.getElementById('gps-last-update').textContent=now;
+  document.getElementById('gps-coords-display').textContent=`Lat: ${lat}, Lng: ${lng} (±${acc}m accuracy) — Real GPS position`;
+  renderNavMap(ambs[idx]);
+}
+
+/* ── Navigation Map ── */
+function renderNavMap(amb){
+  if(typeof L==='undefined') return;
+  const mapDiv=document.getElementById('amb-nav-map');
+  try{
+    if(_navMap){_navMap.remove();_navMap=null;}
+    const lat=amb.lat||12.9716;
+    const lng=amb.lng||77.5946;
+    _navMap=L.map('amb-nav-map').setView([lat,lng],13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(_navMap);
+
+    /* Ambulance marker */
+    const ambIcon=L.divIcon({html:`<div style="background:var(--orange);color:#fff;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:1rem;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3)"><i class="bi bi-truck-front-fill"></i></div>`,iconSize:[30,30],iconAnchor:[15,15]});
+    L.marker([lat,lng],{icon:ambIcon}).addTo(_navMap)
+      .bindPopup(`<b>${aEsc(amb.id)}</b><br>Driver: ${aEsc(amb.driver)}<br><small>${amb.lastGpsUpdate?'GPS: '+new Date(amb.lastGpsUpdate).toLocaleTimeString():'Position from record'}</small>`).openPopup();
+
+    /* Emergency patient location */
+    if(amb.assignedEmergency){
+      const req=(aGet(AK.requests)||[]).find(r=>r.id===amb.assignedEmergency);
+      if(req&&req.lat&&req.lng){
+        const eIcon=L.divIcon({html:`<div style="background:var(--red);color:#fff;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;border:2px solid #fff"><i class="bi bi-person-fill"></i></div>`,iconSize:[30,30],iconAnchor:[15,15]});
+        L.marker([req.lat,req.lng],{icon:eIcon}).addTo(_navMap)
+          .bindPopup(`<b>Patient: ${aEsc(req.patientName)}</b><br>${aEsc(req.location)}`);
+        L.polyline([[lat,lng],[req.lat,req.lng]],{color:'#d97706',weight:3,dashArray:'6,4'}).addTo(_navMap);
+
+        /* Hospital */
+        if(req.assignedHospital){
+          const h=(aGet(AK.hospitals)||[]).find(x=>x.id===req.assignedHospital);
+          if(h&&h.lat){
+            const hIcon=L.divIcon({html:`<div style="background:var(--blue);color:#fff;border-radius:6px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:0.9rem"><i class="bi bi-hospital-fill"></i></div>`,iconSize:[30,30],iconAnchor:[15,15]});
+            L.marker([h.lat,h.lng],{icon:hIcon}).addTo(_navMap).bindPopup(`<b>${aEsc(h.name)}</b>`);
+          }
+        }
+      }
+    }
+  }catch(e){mapDiv.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:0.8rem">Map unavailable.</div>';}
+}
+
+/* ── History ── */
+function renderAmbHistory(amb){
+  const allReqs=aGet(AK.requests);
+  const hist=aGet('rsq_history')||[];
+  const myReqs=[...allReqs,...hist].filter(r=>r.assignedAmbulance===amb.id);
+  const el=document.getElementById('amb-history-list');
+  if(!myReqs.length){
+    el.innerHTML=`<div class="empty-state"><i class="bi bi-clock-history"></i><p>No emergency records for this ambulance.</p></div>`;
+    return;
+  }
+  el.innerHTML=`<table class="table table-sm" style="font-size:0.8rem">
+    <thead><tr><th>ID</th><th>Patient</th><th>Type</th><th>Status</th><th>Date</th></tr></thead>
+    <tbody>${myReqs.map(r=>`<tr><td><strong>${aEsc(r.id)}</strong></td><td>${aEsc(r.patientName)}</td><td>${aEsc(r.emergencyType)}</td><td>${aBadge(r.status)}</td><td>${aEsc(r.date||'')}</td></tr>`).join('')}</tbody>
+  </table>`;
+}
+
+/* ── Badges ── */
+function pBadge(p){const m={Critical:'sb-critical',High:'sb-high',Medium:'sb-medium',Low:'sb-low'};return `<span class="sbadge ${m[p]||'sb-medium'}">${aEsc(p||'—')}</span>`;}
+function aBadge(s){
+  const m={'Available':'sb-done','On Emergency Duty':'sb-assigned','Dispatched':'sb-transit','Transporting Patient':'sb-transit','At Hospital':'sb-done','Pending':'sb-pending','Ambulance Assigned':'sb-assigned','Ambulance Dispatched':'sb-transit','Patient Picked Up':'sb-transit','Patient In Transit':'sb-transit','Arrived at Hospital':'sb-done','Completed':'sb-done'};
+  return `<span class="sbadge ${m[s]||'sb-pending'}">${aEsc(s||'—')}</span>`;
+}
+
+function logActivity(msg,type){
+  const act=ALS.get(AK.activity)||[];
+  act.unshift({id:'A'+Date.now(),msg,type,time:new Date().toISOString()});
+  if(act.length>30) act.pop();
+  aSave(AK.activity,act);
+}
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded',()=>{
+  populateAmbLogin();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RESQORA – Hospital Management Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <style>
+    :root{
+      --red:#d63031;--navy:#0a1628;--navy-light:#1a3060;
+      --green:#16a34a;--orange:#d97706;--blue:#2563eb;
+      --grey-bg:#f0f2f5;--border:#dde2ea;--text-muted:#6b7280;
+    }
+    *{box-sizing:border-box;}
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--grey-bg);margin:0;min-height:100vh;}
+
+    /* Topbar */
+    .hosp-topbar{background:var(--navy);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+    .hosp-brand{display:flex;align-items:center;gap:10px;font-size:1.05rem;font-weight:800;}
+    .hosp-brand-icon{width:36px;height:36px;background:var(--green);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#fff;}
+    .pnl{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:5px 13px;border-radius:20px;font-size:0.75rem;text-decoration:none;transition:background 0.15s;}
+    .pnl:hover{background:rgba(255,255,255,0.22);color:#fff;}
+    .pnl.active{background:var(--green);border-color:var(--green);}
+
+    /* Login */
+    .login-wrap{max-width:420px;margin:60px auto;padding:0 16px;}
+    .login-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:32px;box-shadow:0 4px 18px rgba(0,0,0,0.07);}
+    .login-title{font-size:1.2rem;font-weight:800;color:var(--navy);margin-bottom:4px;}
+    .login-sub{font-size:0.8rem;color:var(--text-muted);margin-bottom:20px;}
+
+    /* Main */
+    .hosp-main{max-width:960px;margin:0 auto;padding:22px 16px 48px;}
+
+    /* Status bar */
+    .status-bar{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+    .sb-item label{font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;display:block;}
+    .sb-item span{font-size:0.9rem;font-weight:700;color:var(--navy);}
+
+    /* Cards */
+    .h-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
+    .h-card-title{font-size:0.92rem;font-weight:700;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+
+    /* Capacity bars */
+    .cap-bar-wrap{margin-top:4px;}
+    .cap-bar{height:7px;border-radius:4px;background:#e5e7eb;overflow:hidden;}
+    .cap-fill{height:100%;border-radius:4px;transition:width 0.4s;}
+
+    /* Stat mini */
+    .stat-mini{background:var(--grey-bg);border-radius:10px;padding:12px 14px;text-align:center;}
+    .stat-mini .sm-val{font-size:1.5rem;font-weight:800;color:var(--navy);line-height:1;}
+    .stat-mini .sm-lbl{font-size:0.7rem;color:var(--text-muted);margin-top:3px;}
+
+    /* Patient card */
+    .pat-card{border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;}
+    .pat-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+
+    /* Badges */
+    .sbadge{display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;font-weight:600;padding:3px 9px;border-radius:20px;border:1px solid transparent;}
+    .sb-critical{background:#fef2f2;color:#b91c1c;border-color:#fca5a5;}
+    .sb-high{background:#fff7ed;color:#c2410c;border-color:#fdba74;}
+    .sb-medium{background:#fefce8;color:#854d0e;border-color:#fde047;}
+    .sb-low{background:#f0fdf4;color:#15803d;border-color:#86efac;}
+    .sb-pending{background:#fefce8;color:#854d0e;border-color:#fde047;}
+    .sb-transit{background:#faf5ff;color:#6d28d9;border-color:#c4b5fd;}
+    .sb-available{background:#f0fdf4;color:#15803d;border-color:#86efac;}
+    .sb-limited{background:#fff7ed;color:#c2410c;border-color:#fdba74;}
+    .sb-full{background:#fef2f2;color:#b91c1c;border-color:#fca5a5;}
+
+    /* Detail row */
+    .d-row{display:flex;gap:8px;margin-bottom:7px;font-size:0.81rem;}
+    .d-label{color:var(--text-muted);font-weight:600;min-width:140px;flex-shrink:0;}
+    .d-value{color:var(--navy);}
+
+    /* Form */
+    .form-label{font-size:0.78rem;font-weight:600;color:var(--navy);margin-bottom:4px;}
+    .form-control,.form-select{font-size:0.83rem;border-radius:8px;border-color:var(--border);}
+    .form-control:focus,.form-select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
+
+    /* Toast */
+    .toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;}
+
+    /* Empty */
+    .empty-state{text-align:center;padding:36px 20px;color:var(--text-muted);}
+    .empty-state i{font-size:2.2rem;display:block;margin-bottom:10px;opacity:0.35;}
+
+    /* Disclaimer */
+    .disclaimer{background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:9px 13px;font-size:0.74rem;color:#854d0e;margin-bottom:14px;}
+
+    @media(max-width:575px){ .hosp-topbar{padding:10px 14px;} }
+  </style>
+</head>
+<body>
+
+<div class="toast-container" id="hosp-toasts"></div>
+
+<!-- Topbar -->
+<div class="hosp-topbar">
+  <div class="hosp-brand">
+    <div class="hosp-brand-icon"><i class="bi bi-hospital-fill"></i></div>
+    <div>
+      <div>RESQORA</div>
+      <div style="font-size:0.65rem;opacity:0.55;font-weight:400;text-transform:uppercase;letter-spacing:0.8px">Hospital Management Portal</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a href="citizen.html" class="pnl"><i class="bi bi-people-fill me-1"></i>Citizen</a>
+    <a href="ambulance.html" class="pnl"><i class="bi bi-truck-front-fill me-1"></i>Ambulance</a>
+    <a href="index.html" class="pnl"><i class="bi bi-shield-fill-check me-1"></i>Admin</a>
+    <a href="#" class="pnl active" onclick="hospLogout(); return false;"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="hosp-login-screen">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="text-center mb-4">
+        <div style="width:56px;height:56px;background:var(--green);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;color:#fff;margin:0 auto 12px"><i class="bi bi-hospital-fill"></i></div>
+        <div class="login-title">Hospital Staff Login</div>
+        <div class="login-sub">Select your hospital and enter access credentials</div>
+      </div>
+      <div class="disclaimer"><i class="bi bi-info-circle me-1"></i><strong>Demo Portal.</strong> Select a hospital and enter any PIN. Production would use secure authentication.</div>
+      <div class="mb-3">
+        <label class="form-label">Hospital <span class="text-danger">*</span></label>
+        <select id="hosp-login-select" class="form-select"></select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Staff Name</label>
+        <input type="text" id="hosp-login-name" class="form-control" placeholder="Your name" />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Access PIN (Demo: any 4 digits)</label>
+        <input type="password" id="hosp-login-pin" class="form-control" placeholder="Enter PIN" maxlength="6" />
+      </div>
+      <div id="hosp-login-error" class="text-danger mb-2" style="font-size:0.78rem;display:none"></div>
+      <button class="btn btn-success w-100 fw-bold text-white" onclick="hospLogin()"><i class="bi bi-hospital-fill me-2"></i>Login to Hospital Portal</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN PORTAL -->
+<div id="hosp-portal" style="display:none">
+  <div class="hosp-main">
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <div class="sb-item">
+        <label>Hospital</label>
+        <span id="hosp-logged-name">—</span>
+      </div>
+      <div class="sb-item">
+        <label>Staff</label>
+        <span id="hosp-logged-staff">—</span>
+      </div>
+      <div class="sb-item">
+        <label>Hospital Status</label>
+        <span id="hosp-logged-status">—</span>
+      </div>
+      <button class="btn btn-sm btn-outline-secondary" onclick="hospRefresh()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    </div>
+
+    <!-- Capacity Overview -->
+    <div class="row g-3 mb-3">
+      <div class="col-md-3 col-6">
+        <div class="stat-mini">
+          <div class="sm-val" id="hosp-stat-ebeds">—</div>
+          <div class="sm-lbl">Emergency Beds Available</div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="stat-mini">
+          <div class="sm-val" id="hosp-stat-icu">—</div>
+          <div class="sm-lbl">ICU Beds Available</div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="stat-mini">
+          <div class="sm-val" id="hosp-stat-incoming">—</div>
+          <div class="sm-lbl">Incoming Patients</div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="stat-mini">
+          <div class="sm-val" id="hosp-stat-admitted">—</div>
+          <div class="sm-lbl">Currently Admitted</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Capacity Update -->
+    <div class="h-card">
+      <div class="h-card-title"><i class="bi bi-sliders text-success"></i> Update Hospital Capacity</div>
+      <div class="row g-3">
+        <div class="col-md-3 col-6">
+          <label class="form-label">Emergency Beds Available</label>
+          <input type="number" id="upd-ebeds" class="form-control form-control-sm" min="0" placeholder="0" />
+        </div>
+        <div class="col-md-3 col-6">
+          <label class="form-label">ICU Beds Available</label>
+          <input type="number" id="upd-icu" class="form-control form-control-sm" min="0" placeholder="0" />
+        </div>
+        <div class="col-md-3 col-6">
+          <label class="form-label">Hospital Status</label>
+          <select id="upd-status" class="form-select form-select-sm">
+            <option>Accepting Emergency Patients</option>
+            <option>Limited Emergency Capacity</option>
+            <option>Emergency Department Full</option>
+            <option>Temporarily Unavailable</option>
+          </select>
+        </div>
+        <div class="col-md-3 col-6 d-flex align-items-end">
+          <button class="btn btn-success btn-sm w-100 text-white" onclick="updateCapacity()"><i class="bi bi-check-circle me-1"></i>Save Capacity</button>
+        </div>
+      </div>
+      <div class="row g-3 mt-1">
+        <div class="col-md-3 col-6">
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="upd-trauma"><label class="form-check-label" style="font-size:0.8rem" for="upd-trauma">Trauma Care</label></div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="upd-cardiac"><label class="form-check-label" style="font-size:0.8rem" for="upd-cardiac">Cardiac Care</label></div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="upd-stroke"><label class="form-check-label" style="font-size:0.8rem" for="upd-stroke">Stroke Care</label></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Incoming Patients -->
+    <div class="h-card">
+      <div class="h-card-title"><i class="bi bi-person-fill-exclamation text-danger"></i> Incoming Emergency Patients</div>
+      <div id="incoming-patients-list"></div>
+    </div>
+
+    <!-- Admitted Patients -->
+    <div class="h-card">
+      <div class="h-card-title"><i class="bi bi-person-check-fill text-success"></i> Admitted Patients</div>
+      <div id="admitted-patients-list"></div>
+    </div>
+
+    <!-- All Emergency Requests for this hospital -->
+    <div class="h-card">
+      <div class="h-card-title"><i class="bi bi-list-ul"></i> All Emergency Requests (this hospital)</div>
+      <div id="all-hosp-reqs"></div>
+    </div>
+
+    <!-- Hospital Details -->
+    <div class="h-card">
+      <div class="h-card-title"><i class="bi bi-hospital-fill text-success"></i> Hospital Information</div>
+      <div id="hosp-detail-body"></div>
+    </div>
+
+  </div>
+</div>
+
+<footer style="text-align:center;padding:16px;font-size:0.72rem;color:var(--text-muted);border-top:1px solid var(--border);background:#fff;margin-top:auto">
+  RESQORA | LifeLine AI | Hospital Management Portal | Designed &amp; Developed by Sindhu Raj B
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+'use strict';
+
+const HLS={
+  get(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+};
+const HK={requests:'rsq_requests',hospitals:'rsq_hospitals',patients:'rsq_patients',activity:'rsq_activity'};
+function hGet(k){return HLS.get(k)||[];}
+function hSave(k,v){HLS.set(k,v);}
+
+let _hospId=null, _staffName='';
+
+/* ── Toast ── */
+function hToast(msg,type='success'){
+  const id='ht'+Date.now();
+  const icons={success:'bi-check-circle-fill',danger:'bi-exclamation-triangle-fill',warning:'bi-exclamation-circle-fill',info:'bi-info-circle-fill'};
+  const div=document.createElement('div');
+  div.className=`toast align-items-center text-white bg-${type} border-0 show mb-2`;div.id=id;
+  div.innerHTML=`<div class="d-flex"><div class="toast-body d-flex align-items-center gap-2"><i class="bi ${icons[type]||icons.info}"></i>${hEsc(msg)}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="document.getElementById('${id}').remove()"></button></div>`;
+  document.getElementById('hosp-toasts').appendChild(div);
+  setTimeout(()=>{try{document.getElementById(id).remove();}catch(e){}},3500);
+}
+function hEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* ── Login ── */
+function populateHospLogin(){
+  const hosps=hGet(HK.hospitals);
+  const sel=document.getElementById('hosp-login-select');
+  sel.innerHTML='<option value="">Select Hospital…</option>'+hosps.map(h=>`<option value="${h.id}">${hEsc(h.name)} — ${hEsc(h.city)}</option>`).join('');
+}
+
+function hospLogin(){
+  const id=document.getElementById('hosp-login-select').value;
+  const pin=document.getElementById('hosp-login-pin').value;
+  const name=document.getElementById('hosp-login-name').value.trim()||'Staff';
+  const errEl=document.getElementById('hosp-login-error');
+  if(!id){errEl.textContent='Please select a hospital.';errEl.style.display='';return;}
+  if(!pin||pin.length<4){errEl.textContent='Enter a valid PIN.';errEl.style.display='';return;}
+  errEl.style.display='none';
+  _hospId=id;
+  _staffName=name;
+  document.getElementById('hosp-login-screen').style.display='none';
+  document.getElementById('hosp-portal').style.display='';
+  renderHospPortal();
+}
+
+function hospLogout(){
+  _hospId=null;
+  document.getElementById('hosp-portal').style.display='none';
+  document.getElementById('hosp-login-screen').style.display='';
+}
+
+function hospRefresh(){renderHospPortal();}
+
+/* ── Render ── */
+function renderHospPortal(){
+  if(!_hospId) return;
+  const hosps=hGet(HK.hospitals);
+  const h=hosps.find(x=>x.id===_hospId);
+  if(!h) return;
+
+  document.getElementById('hosp-logged-name').textContent=h.name;
+  document.getElementById('hosp-logged-staff').textContent=_staffName;
+  document.getElementById('hosp-logged-status').innerHTML=hStatusBadge(h.status);
+
+  /* Populate capacity form */
+  document.getElementById('upd-ebeds').value=h.emergencyBeds||0;
+  document.getElementById('upd-icu').value=h.icuBeds||0;
+  document.getElementById('upd-status').value=h.status||'Accepting Emergency Patients';
+  document.getElementById('upd-trauma').checked=!!h.traumaCare;
+  document.getElementById('upd-cardiac').checked=!!h.cardiacCare;
+  document.getElementById('upd-stroke').checked=!!h.strokeCare;
+
+  /* Stats */
+  const allReqs=hGet(HK.requests);
+  const myReqs=allReqs.filter(r=>r.assignedHospital===_hospId);
+  const incomingStatuses=['Ambulance Dispatched','Patient Picked Up','Patient In Transit'];
+  const incoming=myReqs.filter(r=>incomingStatuses.includes(r.status));
+  const admitted=myReqs.filter(r=>r.status==='Arrived at Hospital');
+
+  document.getElementById('hosp-stat-ebeds').textContent=h.emergencyBeds??'—';
+  document.getElementById('hosp-stat-icu').textContent=h.icuBeds??'—';
+  document.getElementById('hosp-stat-incoming').textContent=incoming.length;
+  document.getElementById('hosp-stat-admitted').textContent=admitted.length;
+
+  renderIncomingPatients(incoming);
+  renderAdmittedPatients(admitted);
+  renderAllHospReqs(myReqs, h);
+  renderHospDetail(h);
+}
+
+function renderIncomingPatients(reqs){
+  const el=document.getElementById('incoming-patients-list');
+  if(!reqs.length){
+    el.innerHTML=`<div class="empty-state"><i class="bi bi-inbox"></i><p>No incoming patients currently.</p></div>`;
+    return;
+  }
+  el.innerHTML=reqs.map(r=>`
+    <div class="pat-card" style="border-left:4px solid var(--orange)">
+      <div class="pat-card-header">
+        <div>
+          <strong style="font-size:0.9rem">${hEsc(r.patientName)}</strong>
+          <span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">${hEsc(r.id)}</span>
+        </div>
+        ${pBadge(r.priority)}
+      </div>
+      <div class="row g-1" style="font-size:0.8rem">
+        <div class="col-md-4"><i class="bi bi-exclamation-triangle me-1 text-muted"></i>${hEsc(r.emergencyType)}</div>
+        <div class="col-md-4"><i class="bi bi-activity me-1 text-muted"></i>${hEsc(r.condition)}</div>
+        <div class="col-md-4"><i class="bi bi-truck-front me-1 text-muted"></i>Amb: ${hEsc(r.assignedAmbulance||'—')}</div>
+      </div>
+      <div class="d-flex gap-2 flex-wrap mt-2">
+        <button class="btn btn-sm btn-success text-white" onclick="acceptPatient('${r.id}')"><i class="bi bi-check-circle me-1"></i>Accept Patient</button>
+        <button class="btn btn-sm btn-outline-danger" onclick="rejectPatient('${r.id}')"><i class="bi bi-x-circle me-1"></i>Redirect</button>
+        <button class="btn btn-sm btn-outline-primary" onclick="markArrived('${r.id}')"><i class="bi bi-hospital-fill me-1"></i>Mark Arrived</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderAdmittedPatients(reqs){
+  const el=document.getElementById('admitted-patients-list');
+  if(!reqs.length){
+    el.innerHTML=`<div class="empty-state"><i class="bi bi-person-check"></i><p>No admitted patients.</p></div>`;
+    return;
+  }
+  el.innerHTML=reqs.map(r=>`
+    <div class="pat-card" style="border-left:4px solid var(--green)">
+      <div class="pat-card-header">
+        <div>
+          <strong style="font-size:0.88rem">${hEsc(r.patientName)}</strong>
+          <span style="font-size:0.72rem;color:var(--text-muted);margin-left:8px">${hEsc(r.id)}</span>
+        </div>
+        <span class="sbadge sb-available">Arrived</span>
+      </div>
+      <div style="font-size:0.79rem;color:var(--text-muted)">${hEsc(r.emergencyType)} · ${hEsc(r.condition)}</div>
+      <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-sm btn-outline-success" onclick="dischargePatient('${r.id}')"><i class="bi bi-box-arrow-up-right me-1"></i>Discharge</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderAllHospReqs(reqs, h){
+  const el=document.getElementById('all-hosp-reqs');
+  if(!reqs.length){el.innerHTML=`<div class="empty-state"><i class="bi bi-list-ul"></i><p>No emergency requests for this hospital.</p></div>`;return;}
+  el.innerHTML=`<div class="table-responsive"><table class="table table-sm" style="font-size:0.8rem">
+    <thead><tr><th>ID</th><th>Patient</th><th>Type</th><th>Priority</th><th>Status</th></tr></thead>
+    <tbody>${reqs.map(r=>`<tr><td><strong>${hEsc(r.id)}</strong></td><td>${hEsc(r.patientName)}</td><td>${hEsc(r.emergencyType)}</td><td>${pBadge(r.priority)}</td><td>${hStatusBadge(r.status)}</td></tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+function renderHospDetail(h){
+  const bedPct=Math.round((h.emergencyBeds/(h.totalEmergencyBeds||h.emergencyBeds||1))*100);
+  const icuPct=Math.round((h.icuBeds/(h.totalIcuBeds||h.icuBeds||1))*100);
+  const c=bedPct>60?'var(--green)':bedPct>30?'var(--orange)':'var(--red)';
+  document.getElementById('hosp-detail-body').innerHTML=`
+    <div class="row g-3">
+      <div class="col-md-6">
+        ${dr('Hospital ID',h.id)}
+        ${dr('Address',h.address+', '+h.city)}
+        ${dr('Contact',h.contact)}
+        ${dr('Emergency Dept.',h.emergencyDept?'<span class="sbadge sb-available">Open</span>':'<span class="sbadge">Closed</span>')}
+      </div>
+      <div class="col-md-6">
+        <div style="font-size:0.78rem;font-weight:600;color:var(--text-muted);margin-bottom:6px">Emergency Beds: ${h.emergencyBeds} / ${h.totalEmergencyBeds||h.emergencyBeds}</div>
+        <div class="cap-bar"><div class="cap-fill" style="width:${bedPct}%;background:${c}"></div></div>
+        <div style="font-size:0.78rem;font-weight:600;color:var(--text-muted);margin-top:10px;margin-bottom:6px">ICU Beds: ${h.icuBeds} / ${h.totalIcuBeds||h.icuBeds}</div>
+        <div class="cap-bar"><div class="cap-fill" style="width:${icuPct}%;background:var(--blue)"></div></div>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          ${h.traumaCare?'<span class="sbadge sb-available"><i class="bi bi-check2 me-1"></i>Trauma Care</span>':'<span class="sbadge" style="background:#f9fafb;color:#9ca3af">No Trauma</span>'}
+          ${h.cardiacCare?'<span class="sbadge sb-available"><i class="bi bi-check2 me-1"></i>Cardiac Care</span>':'<span class="sbadge" style="background:#f9fafb;color:#9ca3af">No Cardiac</span>'}
+          ${h.strokeCare?'<span class="sbadge sb-available"><i class="bi bi-check2 me-1"></i>Stroke Care</span>':'<span class="sbadge" style="background:#f9fafb;color:#9ca3af">No Stroke</span>'}
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ── Actions ── */
+function updateCapacity(){
+  const hosps=hGet(HK.hospitals);
+  const idx=hosps.findIndex(h=>h.id===_hospId);
+  if(idx<0) return;
+  hosps[idx].emergencyBeds=parseInt(document.getElementById('upd-ebeds').value)||0;
+  hosps[idx].icuBeds=parseInt(document.getElementById('upd-icu').value)||0;
+  hosps[idx].status=document.getElementById('upd-status').value;
+  hosps[idx].traumaCare=document.getElementById('upd-trauma').checked;
+  hosps[idx].cardiacCare=document.getElementById('upd-cardiac').checked;
+  hosps[idx].strokeCare=document.getElementById('upd-stroke').checked;
+  hSave(HK.hospitals,hosps);
+  logHospActivity(`Hospital ${hosps[idx].name} capacity updated by ${_staffName}`);
+  hToast('Hospital capacity updated successfully.','success');
+  renderHospPortal();
+}
+
+function acceptPatient(reqId){
+  updateReqStatus(reqId,'Arrived at Hospital');
+  hToast(`Patient accepted — ${reqId}`,'success');
+}
+
+function rejectPatient(reqId){
+  const reqs=hGet(HK.requests);
+  const idx=reqs.findIndex(r=>r.id===reqId);
+  if(idx>-1){reqs[idx].assignedHospital='';hSave(HK.requests,reqs);}
+  hToast(`Patient ${reqId} redirected. Please reassign hospital.`,'warning');
+  renderHospPortal();
+}
+
+function markArrived(reqId){ updateReqStatus(reqId,'Arrived at Hospital'); }
+
+function dischargePatient(reqId){
+  if(!window.confirm(`Discharge patient for ${reqId}? This will mark the emergency as completed.`)) return;
+  updateReqStatus(reqId,'Completed');
+  /* Move to history */
+  const reqs=hGet(HK.requests);
+  const req=reqs.find(r=>r.id===reqId);
+  if(req){
+    const hist=HLS.get('rsq_history')||[];
+    hist.unshift({...req,status:'Completed',completedAt:new Date().toISOString(),responseTime:req.eta||'—'});
+    HLS.set('rsq_history',hist);
+    hSave(HK.requests,reqs.filter(r=>r.id!==reqId));
+    /* Free ambulance */
+    if(req.assignedAmbulance){
+      const ambs=hGet('rsq_ambulances');
+      const ai=ambs.findIndex(a=>a.id===req.assignedAmbulance);
+      if(ai>-1){ambs[ai].status='Available';ambs[ai].assignedEmergency='';hSave('rsq_ambulances',ambs);}
+    }
+  }
+  hToast(`Patient discharged. Emergency ${reqId} completed.`,'success');
+  renderHospPortal();
+}
+
+function updateReqStatus(reqId,status){
+  const reqs=hGet(HK.requests);
+  const idx=reqs.findIndex(r=>r.id===reqId);
+  if(idx>-1){reqs[idx].status=status;hSave(HK.requests,reqs);}
+  logHospActivity(`Emergency ${reqId} status → ${status} (by ${_staffName})`);
+  renderHospPortal();
+}
+
+/* ── Badges ── */
+function pBadge(p){const m={Critical:'sb-critical',High:'sb-high',Medium:'sb-medium',Low:'sb-low'};return `<span class="sbadge ${m[p]||'sb-medium'}">${hEsc(p||'—')}</span>`;}
+function hStatusBadge(s){
+  const m={'Available':'sb-available','Accepting Emergency Patients':'sb-available','Limited Emergency Capacity':'sb-limited','Emergency Department Full':'sb-full','Pending':'sb-pending','Ambulance Dispatched':'sb-transit','Patient In Transit':'sb-transit','Arrived at Hospital':'sb-available','Completed':'sb-available'};
+  return `<span class="sbadge ${m[s]||'sb-pending'}">${hEsc(s||'—')}</span>`;
+}
+function dr(label,val){return `<div class="d-row"><span class="d-label">${hEsc(label)}</span><span class="d-value">${val}</span></div>`;}
+
+function logHospActivity(msg){
+  const act=HLS.get(HK.activity)||[];
+  act.unshift({id:'A'+Date.now(),msg,type:'green',time:new Date().toISOString()});
+  if(act.length>30) act.pop();
+  HLS.set(HK.activity,act);
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  populateHospLogin();
+});
+</script>
+</body>
+</html>

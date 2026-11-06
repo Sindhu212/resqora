@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RESQORA – Report Emergency | LifeLine AI</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
+  <link rel="stylesheet" href="portal.css" />
+  <style>
+    :root {
+      --red:#d63031; --navy:#0a1628; --navy-light:#1a3060;
+      --green:#16a34a; --orange:#d97706; --blue:#2563eb;
+      --grey-bg:#f0f2f5; --border:#dde2ea; --text-muted:#6b7280;
+    }
+    body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--grey-bg); margin:0; min-height:100vh; }
+
+    /* Landing hero */
+    .hero-section {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 60%, #1e3a6e 100%);
+      color: #fff;
+      padding: 40px 20px 36px;
+      text-align: center;
+    }
+    .hero-brand { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:18px; }
+    .hero-icon { width:52px;height:52px;background:var(--red);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem; }
+    .hero-name { font-size:1.8rem;font-weight:900;letter-spacing:0.5px; }
+    .hero-tagline { font-size:0.8rem;opacity:0.6;text-transform:uppercase;letter-spacing:1px; }
+    .hero-desc { font-size:1rem;opacity:0.8;max-width:520px;margin:0 auto 24px; }
+    .btn-sos {
+      background: var(--red);
+      border: none;
+      color: #fff;
+      font-size: 1.3rem;
+      font-weight: 800;
+      padding: 16px 48px;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(214,48,49,0.5);
+      animation: pulse-btn 2s infinite;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      transition: background 0.2s;
+    }
+    .btn-sos:hover { background:#b71c1c; }
+    @keyframes pulse-btn {
+      0%,100%{box-shadow:0 4px 20px rgba(214,48,49,0.5)}
+      50%{box-shadow:0 4px 36px rgba(214,48,49,0.9)}
+    }
+    .portal-nav { display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:20px; }
+    .portal-link { background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.22);color:#fff;padding:6px 16px;border-radius:20px;font-size:0.78rem;text-decoration:none;transition:background 0.15s; }
+    .portal-link:hover { background:rgba(255,255,255,0.22);color:#fff; }
+    .portal-link.active { background:var(--red);border-color:var(--red); }
+
+    /* Main form area */
+    .main-wrap { max-width:760px;margin:0 auto;padding:24px 16px 48px; }
+
+    /* Steps */
+    .step-indicator { display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:28px; }
+    .step-dot { width:32px;height:32px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:700;color:#6b7280;transition:all 0.2s;flex-shrink:0; }
+    .step-dot.active { background:var(--red);color:#fff; }
+    .step-dot.done  { background:var(--green);color:#fff; }
+    .step-line { flex:1;height:2px;background:#e5e7eb;max-width:80px;transition:background 0.2s; }
+    .step-line.done { background:var(--green); }
+
+    /* Cards */
+    .p-card { background:#fff;border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:18px;box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+    .p-card-title { font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:16px;display:flex;align-items:center;gap:8px; }
+    .p-card-title i { color:var(--red); }
+
+    /* GPS button */
+    .btn-gps { background:var(--navy);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background 0.15s; }
+    .btn-gps:hover { background:var(--navy-light); }
+    .gps-status { font-size:0.75rem;margin-top:6px;display:flex;align-items:center;gap:5px; }
+    .gps-dot { width:8px;height:8px;border-radius:50%; }
+
+    /* Map */
+    #citizen-map { height:220px;border-radius:10px;border:1px solid var(--border);background:#e8edf2;margin-top:12px; }
+    #citizen-track-map { height:260px;border-radius:10px;border:1px solid var(--border);background:#e8edf2;margin-top:12px; }
+
+    /* Emergency type grid */
+    .etype-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:8px; }
+    .etype-btn {
+      border:2px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;transition:all 0.15s;background:#fff;
+      font-size:0.78rem;font-weight:600;color:var(--navy);
+    }
+    .etype-btn i { display:block;font-size:1.4rem;margin-bottom:6px; }
+    .etype-btn:hover,.etype-btn.selected { border-color:var(--red);background:#fef2f2;color:var(--red); }
+
+    /* Status tracker */
+    .status-track { list-style:none;padding:0;margin:0; }
+    .status-track li { display:flex;gap:14px;padding-bottom:20px;position:relative; }
+    .status-track li:not(:last-child)::before { content:'';position:absolute;left:15px;top:30px;width:2px;height:calc(100% - 16px);background:var(--border); }
+    .st-icon { width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0; }
+    .st-done  { background:#f0fdf4;color:var(--green); }
+    .st-active{ background:#fef2f2;color:var(--red); }
+    .st-wait  { background:#f9fafb;color:#9ca3af; }
+    .st-text strong { font-size:0.85rem;color:var(--navy); }
+    .st-text span   { font-size:0.76rem;color:var(--text-muted);display:block; }
+
+    /* Confirmation card */
+    .confirm-card { border:2px solid var(--green);background:#f0fdf4;border-radius:14px;padding:24px;text-align:center; }
+    .confirm-ref  { font-size:1.8rem;font-weight:900;color:var(--navy);letter-spacing:2px; }
+
+    /* Ambulance info */
+    .amb-info-card { background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px; }
+
+    /* Form label */
+    .form-label { font-size:0.78rem;font-weight:600;color:var(--navy);margin-bottom:4px; }
+    .form-control,.form-select { font-size:0.83rem;border-radius:8px;border-color:var(--border); }
+    .form-control:focus,.form-select:focus { border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
+    .form-control.is-invalid { border-color:var(--red); }
+    .invalid-feedback { font-size:0.72rem; }
+
+    /* Toast */
+    .toast-container { position:fixed;bottom:20px;right:20px;z-index:9999; }
+
+    /* Disclaimer */
+    .disclaimer { background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:10px 14px;font-size:0.75rem;color:#854d0e;margin-bottom:16px; }
+
+    /* Nav portal links in topbar area */
+    .citizen-topbar { background:#fff;border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px; }
+    .citizen-topbar-brand { display:flex;align-items:center;gap:8px;font-weight:800;font-size:1rem;color:var(--navy); }
+    .citizen-topbar-brand .tb-icon { width:30px;height:30px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.9rem; }
+
+    @media(max-width:575px){
+      .hero-section{padding:28px 14px 24px}
+      .btn-sos{font-size:1.1rem;padding:13px 32px}
+      .etype-grid{grid-template-columns:repeat(3,1fr)}
+    }
+  </style>
+</head>
+<body>
+
+<!-- Toast -->
+<div class="toast-container" id="cit-toasts"></div>
+
+<!-- Topbar -->
+<div class="citizen-topbar">
+  <div class="citizen-topbar-brand">
+    <div class="tb-icon"><i class="bi bi-heartbeat"></i></div>
+    RESQORA
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="index.html" class="portal-link" style="color:var(--navy);background:#f0f2f5;border-color:var(--border)"><i class="bi bi-shield-fill-check me-1"></i>Admin Dashboard</a>
+    <a href="ambulance.html" class="portal-link" style="color:var(--navy);background:#f0f2f5;border-color:var(--border)"><i class="bi bi-truck-front-fill me-1"></i>Ambulance Portal</a>
+    <a href="hospital.html" class="portal-link" style="color:var(--navy);background:#f0f2f5;border-color:var(--border)"><i class="bi bi-hospital-fill me-1"></i>Hospital Portal</a>
+  </div>
+</div>
+
+<!-- Hero -->
+<div class="hero-section" id="hero-section">
+  <div class="hero-brand">
+    <div class="hero-icon"><i class="bi bi-heartbeat"></i></div>
+    <div>
+      <div class="hero-name">RESQORA</div>
+      <div class="hero-tagline">LifeLine AI — Emergency Response</div>
+    </div>
+  </div>
+  <p class="hero-desc">Fast, coordinated emergency response. Report an emergency and track ambulance arrival in real time.</p>
+  <button class="btn-sos" onclick="startEmergency()">
+    <i class="bi bi-exclamation-triangle-fill"></i> REPORT EMERGENCY
+  </button>
+  <div style="font-size:0.75rem;opacity:0.55;margin-top:12px">For life-threatening emergencies always call <strong>112 / 108</strong> first</div>
+</div>
+
+<!-- Main wrap (hidden until SOS clicked) -->
+<div class="main-wrap" id="main-wrap" style="display:none">
+
+  <!-- Step Indicator -->
+  <div class="step-indicator" id="step-indicator">
+    <div class="step-dot active" id="sdot-1">1</div>
+    <div class="step-line" id="sline-1"></div>
+    <div class="step-dot" id="sdot-2">2</div>
+    <div class="step-line" id="sline-2"></div>
+    <div class="step-dot" id="sdot-3">3</div>
+    <div class="step-line" id="sline-3"></div>
+    <div class="step-dot" id="sdot-4">4</div>
+  </div>
+
+  <!-- ── STEP 1: Emergency Type ── -->
+  <div id="step-1">
+    <div class="p-card">
+      <div class="p-card-title"><i class="bi bi-exclamation-triangle-fill"></i> Select Emergency Type</div>
+      <div class="etype-grid" id="etype-grid">
+        <div class="etype-btn" onclick="selectType(this,'Road Accident')"><i class="bi bi-car-front-fill"></i>Road Accident</div>
+        <div class="etype-btn" onclick="selectType(this,'Cardiac Emergency')"><i class="bi bi-heart-pulse-fill"></i>Cardiac</div>
+        <div class="etype-btn" onclick="selectType(this,'Medical Emergency')"><i class="bi bi-clipboard2-pulse-fill"></i>Medical</div>
+        <div class="etype-btn" onclick="selectType(this,'Fire Emergency')"><i class="bi bi-fire"></i>Fire</div>
+        <div class="etype-btn" onclick="selectType(this,'Trauma')"><i class="bi bi-bandaid-fill"></i>Trauma</div>
+        <div class="etype-btn" onclick="selectType(this,'Stroke')"><i class="bi bi-brain"></i>Stroke</div>
+        <div class="etype-btn" onclick="selectType(this,'Respiratory Emergency')"><i class="bi bi-lungs-fill"></i>Respiratory</div>
+        <div class="etype-btn" onclick="selectType(this,'Other')"><i class="bi bi-three-dots"></i>Other</div>
+      </div>
+      <div id="etype-error" class="text-danger mt-2" style="font-size:0.78rem;display:none">Please select an emergency type.</div>
+    </div>
+
+    <div class="p-card">
+      <div class="p-card-title"><i class="bi bi-geo-alt-fill"></i> Your Location</div>
+      <div class="disclaimer"><i class="bi bi-info-circle me-1"></i>Location data is used only to dispatch the nearest ambulance. GPS requires HTTPS and browser permission.</div>
+      <button class="btn-gps" onclick="requestGPS()">
+        <i class="bi bi-geo-alt-fill"></i> Detect My Location (GPS)
+      </button>
+      <div class="gps-status" id="gps-status" style="display:none">
+        <div class="gps-dot" id="gps-dot"></div>
+        <span id="gps-status-text"></span>
+      </div>
+      <div class="row g-2 mt-2">
+        <div class="col-md-6">
+          <label class="form-label">Location / Address <span class="text-danger">*</span></label>
+          <input type="text" id="cit-location" class="form-control form-control-sm" placeholder="Street, area or landmark" />
+          <div class="invalid-feedback">Location is required.</div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Latitude</label>
+          <input type="text" id="cit-lat" class="form-control form-control-sm" placeholder="Auto-filled by GPS" readonly />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Longitude</label>
+          <input type="text" id="cit-lng" class="form-control form-control-sm" placeholder="Auto-filled by GPS" readonly />
+        </div>
+      </div>
+      <div id="citizen-map" style="display:none"></div>
+    </div>
+
+    <div class="d-flex justify-content-end">
+      <button class="btn btn-danger px-4" onclick="goStep(2)">Next <i class="bi bi-arrow-right ms-1"></i></button>
+    </div>
+  </div>
+
+  <!-- ── STEP 2: Patient Details ── -->
+  <div id="step-2" style="display:none">
+    <div class="p-card">
+      <div class="p-card-title"><i class="bi bi-person-fill"></i> Patient / Reporter Details</div>
+      <div class="row g-3">
+        <div class="col-md-5">
+          <label class="form-label">Patient / Reporter Name <span class="text-danger">*</span></label>
+          <input type="text" id="cit-name" class="form-control form-control-sm" placeholder="Full name" />
+          <div class="invalid-feedback">Name is required.</div>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Age</label>
+          <input type="number" id="cit-age" class="form-control form-control-sm" min="0" max="120" placeholder="Age" />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Gender</label>
+          <select id="cit-gender" class="form-select form-select-sm">
+            <option value="">—</option><option>Male</option><option>Female</option><option>Other</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Contact Number <span class="text-danger">*</span></label>
+          <input type="text" id="cit-contact" class="form-control form-control-sm" placeholder="10-digit mobile" />
+          <div class="invalid-feedback">Contact number required.</div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Patient Condition</label>
+          <input type="text" id="cit-condition" class="form-control form-control-sm" placeholder="e.g. Unconscious, Bleeding" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Priority</label>
+          <select id="cit-priority" class="form-select form-select-sm">
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+            <option value="Critical">Critical</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Family Contact Name</label>
+          <input type="text" id="cit-family-name" class="form-control form-control-sm" placeholder="Family member to notify" />
+        </div>
+        <div class="col-12">
+          <label class="form-label">Emergency Description</label>
+          <textarea id="cit-desc" class="form-control form-control-sm" rows="2" placeholder="Brief description of what happened…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="d-flex justify-content-between">
+      <button class="btn btn-outline-secondary px-4" onclick="goStep(1)"><i class="bi bi-arrow-left me-1"></i> Back</button>
+      <button class="btn btn-danger px-4" onclick="submitEmergency()"><i class="bi bi-send-fill me-1"></i> Submit Emergency</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 3: Confirmation ── -->
+  <div id="step-3" style="display:none">
+    <div class="confirm-card">
+      <i class="bi bi-check-circle-fill" style="font-size:2.5rem;color:var(--green);display:block;margin-bottom:10px"></i>
+      <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:6px">Your Emergency Reference Number</div>
+      <div class="confirm-ref" id="conf-ref-num">RESQ-XXXX</div>
+      <div style="font-size:0.82rem;margin-top:10px;color:#374151">
+        Emergency reported. Nearest available ambulance is being dispatched.
+      </div>
+    </div>
+
+    <div class="p-card mt-3">
+      <div class="p-card-title"><i class="bi bi-truck-front-fill"></i> Assigned Ambulance</div>
+      <div id="amb-assign-info">
+        <div style="font-size:0.82rem;color:var(--text-muted)">Ambulance assignment in progress…</div>
+      </div>
+    </div>
+
+    <div class="p-card">
+      <div class="p-card-title"><i class="bi bi-hospital-fill"></i> Assigned Hospital</div>
+      <div id="hosp-assign-info">
+        <div style="font-size:0.82rem;color:var(--text-muted)">Hospital is being notified…</div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between mt-2">
+      <button class="btn btn-outline-secondary btn-sm" onclick="goStep(4)"><i class="bi bi-eye me-1"></i>Track My Emergency</button>
+      <button class="btn btn-outline-danger btn-sm" onclick="resetPortal()"><i class="bi bi-plus-circle me-1"></i>New Emergency</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 4: Live Tracking ── -->
+  <div id="step-4" style="display:none">
+    <div class="p-card">
+      <div class="p-card-title"><i class="bi bi-broadcast"></i> Live Emergency Status</div>
+      <div class="disclaimer"><i class="bi bi-info-circle me-1"></i>Location updates shown here are the last recorded positions. Real-time GPS sharing requires ambulance responder permission and HTTPS.</div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <div style="font-size:0.78rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Reference</div>
+          <div id="track-ref" style="font-size:1.1rem;font-weight:800;color:var(--navy)">—</div>
+        </div>
+        <div class="col-md-6">
+          <div style="font-size:0.78rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Current Status</div>
+          <div id="track-status">—</div>
+        </div>
+      </div>
+
+      <ul class="status-track" id="status-track-list"></ul>
+
+      <div id="citizen-track-map"></div>
+      <p style="font-size:0.72rem;color:var(--text-muted);margin-top:6px"><i class="bi bi-info-circle me-1"></i>Map shows last known positions. Not live GPS tracking. Powered by OpenStreetMap.</p>
+    </div>
+
+    <div class="d-flex gap-2 justify-content-end">
+      <button class="btn btn-outline-secondary btn-sm" onclick="refreshTracking()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh Status</button>
+      <button class="btn btn-outline-danger btn-sm" onclick="resetPortal()"><i class="bi bi-plus-circle me-1"></i>New Emergency</button>
+    </div>
+  </div>
+
+</div><!-- /main-wrap -->
+
+<!-- Footer -->
+<footer style="text-align:center;padding:18px;font-size:0.72rem;color:var(--text-muted);border-top:1px solid var(--border);background:#fff;margin-top:32px">
+  RESQORA | LifeLine AI | Designed &amp; Developed by Sindhu Raj B &nbsp;|&nbsp;
+  <strong>Emergency? Call 112 or 108</strong>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════
+   RESQORA – CITIZEN PORTAL
+   Reads/writes the same localStorage keys as resqora.js
+══════════════════════════════════════════════════════ */
+'use strict';
+
+/* ── Shared LS helpers ── */
+const CLS = {
+  get(k){ try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;} },
+  set(k,v){ try{localStorage.setItem(k,JSON.stringify(v));}catch(e){} }
+};
+const CK = {
+  requests:'rsq_requests', ambulances:'rsq_ambulances',
+  hospitals:'rsq_hospitals', notifications:'rsq_notifications',
+  activity:'rsq_activity', counters:'rsq_counters'
+};
+function cGetAll(k){ return CLS.get(k)||[]; }
+function cSaveAll(k,a){ CLS.set(k,a); }
+function cNextId(){
+  const c=CLS.get(CK.counters)||{req:1001,amb:100,hosp:200,pat:300,assign:400,corp:500};
+  const n='RESQ-'+c.req++;
+  CLS.set(CK.counters,c);
+  return n;
+}
+
+/* ── State ── */
+let _selType='', _curLat=null, _curLng=null, _curReqId=null, _citMap=null, _trackMap=null;
+
+/* ── Toast ── */
+function cToast(msg, type='success'){
+  const id='ct'+Date.now();
+  const icons={success:'bi-check-circle-fill',danger:'bi-exclamation-triangle-fill',warning:'bi-exclamation-circle-fill',info:'bi-info-circle-fill'};
+  const div=document.createElement('div');
+  div.className=`toast align-items-center text-white bg-${type} border-0 show mb-2`;
+  div.id=id;
+  div.innerHTML=`<div class="d-flex"><div class="toast-body d-flex align-items-center gap-2"><i class="bi ${icons[type]||icons.info}"></i>${msg}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="document.getElementById('${id}').remove()"></button></div>`;
+  document.getElementById('cit-toasts').appendChild(div);
+  setTimeout(()=>{try{document.getElementById(id).remove();}catch(e){}},3500);
+}
+
+/* ── Start ── */
+function startEmergency(){
+  document.getElementById('hero-section').style.display='none';
+  document.getElementById('main-wrap').style.display='block';
+  goStep(1);
+}
+
+function resetPortal(){
+  _selType=''; _curLat=null; _curLng=null; _curReqId=null;
+  document.getElementById('hero-section').style.display='';
+  document.getElementById('main-wrap').style.display='none';
+  document.querySelectorAll('.etype-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('cit-location').value='';
+  document.getElementById('cit-lat').value='';
+  document.getElementById('cit-lng').value='';
+  document.getElementById('citizen-map').style.display='none';
+  ['cit-name','cit-age','cit-gender','cit-contact','cit-condition','cit-desc','cit-family-name'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('cit-priority').value='Medium';
+}
+
+/* ── Step navigation ── */
+function goStep(n){
+  if(n===2){
+    if(!_selType){ document.getElementById('etype-error').style.display=''; return; }
+    if(!document.getElementById('cit-location').value.trim()){
+      document.getElementById('cit-location').classList.add('is-invalid'); return;
+    }
+    document.getElementById('cit-location').classList.remove('is-invalid');
+    document.getElementById('etype-error').style.display='none';
+  }
+  [1,2,3,4].forEach(i=>{
+    document.getElementById('step-'+i).style.display = i===n ? '' : 'none';
+  });
+  updateStepDots(n);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function updateStepDots(active){
+  for(let i=1;i<=4;i++){
+    const dot=document.getElementById('sdot-'+i);
+    dot.classList.remove('active','done');
+    if(i<active) dot.classList.add('done');
+    else if(i===active) dot.classList.add('active');
+  }
+  for(let i=1;i<=3;i++){
+    const line=document.getElementById('sline-'+i);
+    line.classList.toggle('done', i<active);
+  }
+}
+
+/* ── Type selection ── */
+function selectType(el,type){
+  document.querySelectorAll('.etype-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  _selType=type;
+  document.getElementById('etype-error').style.display='none';
+}
+
+/* ── GPS ── */
+function requestGPS(){
+  const statusDiv=document.getElementById('gps-status');
+  const statusText=document.getElementById('gps-status-text');
+  const dot=document.getElementById('gps-dot');
+  statusDiv.style.display='flex';
+  dot.style.background='#f59e0b';
+  statusText.textContent='Requesting GPS permission…';
+
+  if(!navigator.geolocation){
+    dot.style.background='#ef4444';
+    statusText.textContent='GPS not supported by this browser.';
+    cToast('GPS not supported. Please enter location manually.','warning');
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      _curLat=pos.coords.latitude.toFixed(6);
+      _curLng=pos.coords.longitude.toFixed(6);
+      document.getElementById('cit-lat').value=_curLat;
+      document.getElementById('cit-lng').value=_curLng;
+      dot.style.background='#22c55e';
+      statusText.textContent=`GPS acquired: ${_curLat}, ${_curLng} (accuracy: ±${Math.round(pos.coords.accuracy)}m)`;
+      if(!document.getElementById('cit-location').value.trim()){
+        document.getElementById('cit-location').value=`${_curLat}, ${_curLng} (GPS)`;
+      }
+      showCitizenMap(_curLat, _curLng);
+    },
+    err=>{
+      dot.style.background='#ef4444';
+      const msgs={1:'GPS permission denied. Please enter location manually.',2:'GPS position unavailable.',3:'GPS timed out.'};
+      statusText.textContent=msgs[err.code]||'GPS error. Please enter location manually.';
+      cToast(msgs[err.code]||'GPS error.','warning');
+    },
+    {enableHighAccuracy:true,timeout:10000,maximumAge:0}
+  );
+}
+
+function showCitizenMap(lat,lng){
+  const mapDiv=document.getElementById('citizen-map');
+  mapDiv.style.display='block';
+  if(typeof L==='undefined') return;
+  try{
+    if(_citMap){_citMap.remove();_citMap=null;}
+    _citMap=L.map('citizen-map').setView([lat,lng],15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(_citMap);
+    L.marker([lat,lng]).addTo(_citMap).bindPopup('<b>Your Location</b><br>GPS detected').openPopup();
+  }catch(e){}
+}
+
+/* ── Submit ── */
+function submitEmergency(){
+  const name=document.getElementById('cit-name').value.trim();
+  const contact=document.getElementById('cit-contact').value.trim();
+  if(!name){ document.getElementById('cit-name').classList.add('is-invalid'); return; }
+  else document.getElementById('cit-name').classList.remove('is-invalid');
+  if(!contact){ document.getElementById('cit-contact').classList.add('is-invalid'); return; }
+  else document.getElementById('cit-contact').classList.remove('is-invalid');
+
+  const id=cNextId();
+  _curReqId=id;
+
+  const now=new Date();
+  const req={
+    id, patientName:name,
+    age:document.getElementById('cit-age').value||'',
+    gender:document.getElementById('cit-gender').value||'',
+    contact,
+    emergencyType:_selType,
+    description:document.getElementById('cit-desc').value.trim(),
+    condition:document.getElementById('cit-condition').value.trim()||'Unknown',
+    priority:document.getElementById('cit-priority').value,
+    location:document.getElementById('cit-location').value.trim(),
+    lat:_curLat||'',
+    lng:_curLng||'',
+    assignedAmbulance:'',
+    assignedHospital:'',
+    eta:'',
+    status:'Pending',
+    date:now.toISOString().slice(0,10),
+    time:now.toTimeString().slice(0,5),
+    submittedBy:'citizen',
+    familyContact:document.getElementById('cit-family-name').value.trim()
+  };
+
+  const reqs=cGetAll(CK.requests);
+  reqs.unshift(req);
+  cSaveAll(CK.requests,reqs);
+
+  /* Auto-assign nearest available ambulance */
+  const ambs=cGetAll(CK.ambulances);
+  const available=ambs.filter(a=>a.status==='Available');
+  if(available.length){
+    const picked=available[0];
+    const idx=ambs.indexOf(picked);
+    ambs[idx].status='On Emergency Duty';
+    ambs[idx].assignedEmergency=id;
+    cSaveAll(CK.ambulances,ambs);
+    const rrr=cGetAll(CK.requests);
+    const ri=rrr.findIndex(r=>r.id===id);
+    if(ri>-1){ rrr[ri].assignedAmbulance=picked.id; rrr[ri].status='Ambulance Assigned'; cSaveAll(CK.requests,rrr); }
+
+    document.getElementById('amb-assign-info').innerHTML=`
+      <div class="amb-info-card">
+        <div class="row g-2" style="font-size:0.82rem">
+          <div class="col-6"><strong>ID:</strong> ${escC(picked.id)}</div>
+          <div class="col-6"><strong>Type:</strong> ${escC(picked.type)}</div>
+          <div class="col-6"><strong>Driver:</strong> ${escC(picked.driver)}</div>
+          <div class="col-6"><strong>Contact:</strong> ${escC(picked.driverContact)}</div>
+          <div class="col-6"><strong>Current Location:</strong> ${escC(picked.location)}</div>
+          <div class="col-6"><strong>ETA:</strong> Approx. 10–15 min (simulated)</div>
+        </div>
+      </div>
+      <div style="font-size:0.72rem;color:var(--text-muted);margin-top:6px"><i class="bi bi-info-circle me-1"></i>ETA is simulated. Actual arrival depends on real-time conditions.</div>`;
+  } else {
+    document.getElementById('amb-assign-info').innerHTML=`<div style="font-size:0.82rem;color:var(--orange)"><i class="bi bi-exclamation-triangle me-1"></i>No ambulances currently available. Request registered. Please call 108 immediately.</div>`;
+  }
+
+  /* Auto-assign nearest hospital */
+  const hosps=cGetAll(CK.hospitals).filter(h=>h.status==='Accepting Emergency Patients'&&h.emergencyBeds>0);
+  if(hosps.length){
+    const h=hosps[0];
+    const rrr=cGetAll(CK.requests);
+    const ri=rrr.findIndex(r=>r.id===id);
+    if(ri>-1){ rrr[ri].assignedHospital=h.id; cSaveAll(CK.requests,rrr); }
+    document.getElementById('hosp-assign-info').innerHTML=`
+      <div class="amb-info-card" style="font-size:0.82rem">
+        <div><strong>${escC(h.name)}</strong></div>
+        <div class="row g-1 mt-1">
+          <div class="col-6"><i class="bi bi-geo-alt me-1 text-muted"></i>${escC(h.address)}, ${escC(h.city)}</div>
+          <div class="col-6"><i class="bi bi-telephone me-1 text-muted"></i>${escC(h.contact)}</div>
+          <div class="col-6"><i class="bi bi-hospital me-1 text-muted"></i>${h.emergencyBeds} emergency beds available</div>
+          <div class="col-6"><i class="bi bi-heart-pulse me-1 text-muted"></i>ICU: ${h.icuBeds} beds</div>
+        </div>
+      </div>`;
+  }
+
+  /* Notification */
+  const notifs=cGetAll(CK.notifications);
+  notifs.unshift({id:'N'+Date.now(),type:'Emergency Request Created',emergencyId:id,patient:name,message:`Emergency ${id} submitted by citizen. ${_selType} at ${req.location}.`,time:new Date().toISOString(),read:false});
+  cSaveAll(CK.notifications,notifs);
+
+  /* Activity */
+  const act=cGetAll(CK.activity);
+  act.unshift({id:'A'+Date.now(),msg:`Citizen submitted emergency ${id} — ${_selType}`,type:'red',time:new Date().toISOString()});
+  cSaveAll(CK.activity,act);
+
+  document.getElementById('conf-ref-num').textContent=id;
+  goStep(3);
+  cToast(`Emergency ${id} submitted. Help is on the way!`,'success');
+}
+
+/* ── Tracking ── */
+function goStep4From3(){
+  goStep(4);
+  refreshTracking();
+}
+
+function refreshTracking(){
+  if(!_curReqId) return;
+  const req=(cGetAll(CK.requests)||[]).find(r=>r.id===_curReqId);
+  if(!req){ document.getElementById('status-track-list').innerHTML='<li><div class="st-text"><strong>Request not found.</strong></div></li>'; return; }
+
+  document.getElementById('track-ref').textContent=req.id;
+  document.getElementById('track-status').innerHTML=sBadge(req.status);
+
+  const steps=[
+    {key:'Pending',label:'Request Received',sub:'Emergency reported, dispatch notified'},
+    {key:'Ambulance Assigned',label:'Ambulance Assigned',sub:'Nearest ambulance allocated'},
+    {key:'Ambulance Dispatched',label:'Ambulance Dispatched',sub:'Ambulance on the way to you'},
+    {key:'Patient Picked Up',label:'Patient Picked Up',sub:'You have been picked up'},
+    {key:'Patient In Transit',label:'In Transit to Hospital',sub:'Heading to hospital'},
+    {key:'Arrived at Hospital',label:'Arrived at Hospital',sub:'You have arrived at the hospital'},
+    {key:'Completed',label:'Care Completed',sub:'Emergency response completed'}
+  ];
+
+  const statusOrder=['Pending','Ambulance Assigned','Ambulance Dispatched','Patient Picked Up','Patient In Transit','Arrived at Hospital','Completed'];
+  const curIdx=statusOrder.indexOf(req.status);
+
+  document.getElementById('status-track-list').innerHTML=steps.map((s,i)=>{
+    let cls='st-wait', icon='bi-circle';
+    if(i<curIdx){cls='st-done';icon='bi-check-circle-fill';}
+    else if(i===curIdx){cls='st-active';icon='bi-play-circle-fill';}
+    return `<li>
+      <div class="st-icon ${cls}"><i class="bi ${icon}"></i></div>
+      <div class="st-text"><strong>${escC(s.label)}</strong><span>${escC(s.sub)}</span></div>
+    </li>`;
+  }).join('');
+
+  /* Show map with last positions */
+  showTrackMap(req);
+}
+
+function showTrackMap(req){
+  const mapDiv=document.getElementById('citizen-track-map');
+  if(typeof L==='undefined') return;
+  try{
+    if(_trackMap){_trackMap.remove();_trackMap=null;}
+    const lat=parseFloat(req.lat)||12.9716;
+    const lng=parseFloat(req.lng)||77.5946;
+    _trackMap=L.map('citizen-track-map').setView([lat,lng],13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(_trackMap);
+    L.marker([lat,lng]).addTo(_trackMap).bindPopup(`<b>Emergency Location</b><br>${escC(req.location)}`).openPopup();
+
+    if(req.assignedAmbulance){
+      const amb=(cGetAll(CK.ambulances)||[]).find(a=>a.id===req.assignedAmbulance);
+      if(amb&&amb.lat){
+        const aIcon=L.divIcon({html:`<div style="background:var(--orange);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:0.9rem"><i class="bi bi-truck-front-fill"></i></div>`,iconSize:[28,28]});
+        L.marker([amb.lat,amb.lng],{icon:aIcon}).addTo(_trackMap).bindPopup(`<b>${escC(amb.id)}</b><br>Driver: ${escC(amb.driver)}<br><small style="color:#888">Last recorded position</small>`);
+        L.polyline([[amb.lat,amb.lng],[lat,lng]],{color:'#d97706',weight:3,dashArray:'6,4'}).addTo(_trackMap);
+      }
+    }
+    if(req.assignedHospital){
+      const h=(cGetAll(CK.hospitals)||[]).find(x=>x.id===req.assignedHospital);
+      if(h&&h.lat){
+        const hIcon=L.divIcon({html:`<div style="background:#2563eb;color:#fff;border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:0.9rem"><i class="bi bi-hospital-fill"></i></div>`,iconSize:[28,28]});
+        L.marker([h.lat,h.lng],{icon:hIcon}).addTo(_trackMap).bindPopup(`<b>${escC(h.name)}</b>`);
+      }
+    }
+  }catch(e){}
+}
+
+function sBadge(s){
+  const m={
+    'Pending':'#fefce8;color:#854d0e;border:1px solid #fde047',
+    'Ambulance Assigned':'#fff7ed;color:#c2410c;border:1px solid #fdba74',
+    'Ambulance Dispatched':'#eff6ff;color:#1d4ed8;border:1px solid #93c5fd',
+    'Patient Picked Up':'#faf5ff;color:#6d28d9;border:1px solid #c4b5fd',
+    'Patient In Transit':'#faf5ff;color:#6d28d9;border:1px solid #c4b5fd',
+    'Arrived at Hospital':'#f0fdf4;color:#15803d;border:1px solid #86efac',
+    'Completed':'#f0fdf4;color:#15803d;border:1px solid #86efac'
+  };
+  const style=m[s]||'#f9fafb;color:#6b7280;border:1px solid #d1d5db';
+  return `<span style="background:${style};display:inline-block;font-size:0.75rem;font-weight:600;padding:3px 10px;border-radius:20px">${escC(s)}</span>`;
+}
+
+function escC(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+document.getElementById('step-3')?.querySelector('.btn-outline-secondary')?.addEventListener('click',()=>goStep(4));
+</script>
+</body>
+</html>
